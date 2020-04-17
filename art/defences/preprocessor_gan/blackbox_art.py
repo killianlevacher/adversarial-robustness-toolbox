@@ -33,12 +33,10 @@ import tensorflow as tf
 from six.moves import xrange
 from tensorflow.python.platform import flags
 
-
-from cleverhans.attacks import FastGradientMethod
-from cleverhans.attacks_tf import jacobian_graph, jacobian_augmentation
-from cleverhans.utils import set_log_level, to_categorical
-from cleverhans.utils_tf import model_train, model_eval, batch_eval
-
+from art.defences.cleverhans.attacks.fast_gradient_method import FastGradientMethod
+from art.defences.cleverhans.attacks_tf import jacobian_graph, jacobian_augmentation
+from art.defences.cleverhans.utils import set_log_level, to_categorical
+from art.defences.cleverhans.utils_tf import model_train, model_eval, batch_eval
 
 from art.defences.preprocessor_gan.gan_v2_art import InvertorDefenseGAN, gan_from_config
 from art.defences.preprocessor_gan.gan_defense_art import model_eval_gan
@@ -47,7 +45,6 @@ from art.defences.preprocessor_gan.util_art import save_images_files, ensure_dir
 from art.defences.preprocessor_gan.reconstruction_art import Reconstructor
 from art.defences.preprocessor_gan.reconstruction_art import reconstruct_dataset
 
-
 cfg_REC_RR = 1
 cfg_REC_LR = 0.01
 cfg_REC_ITERS = 200
@@ -55,67 +52,114 @@ cfg_BATCH_SIZE = 50
 cfg_TYPE = "inv"
 # cfg_TYPE = "v2"
 
+cfg = {'TYPE': 'inv',
+       'MODE': 'hingegan',
+       'BATCH_SIZE': 50,
+       'USE_BN': True,
+       'USE_RESBLOCK': False,
+       'LATENT_DIM': 128,
+       'GRADIENT_PENALTY_LAMBDA': 10.0,
+       'OUTPUT_DIR': 'output',
+       'NET_DIM': 64,
+       'TRAIN_ITERS': 20000,
+       'DISC_LAMBDA': 0.0,
+       'TV_LAMBDA': 0.0,
+       'ATTRIBUTE': None,
+       'TEST_BATCH_SIZE': 20,
+       'NUM_GPUS': 1,
+       'INPUT_TRANSFORM_TYPE': 0,
+       'ENCODER_LR': 0.0002,
+       'GENERATOR_LR': 0.0001,
+       'DISCRIMINATOR_LR': 0.0004,
+       'DISCRIMINATOR_REC_LR': 0.0004,
+       'USE_ENCODER_INIT': True,
+       'ENCODER_LOSS_TYPE': 'margin',
+       'REC_LOSS_SCALE': 100.0,
+       'REC_DISC_LOSS_SCALE': 1.0,
+       'LATENT_REG_LOSS_SCALE': 0.5,
+       'REC_MARGIN': 0.02,
+       'ENC_DISC_TRAIN_ITER': 0,
+       'ENC_TRAIN_ITER': 1,
+       'DISC_TRAIN_ITER': 1,
+       'GENERATOR_INIT_PATH': 'output/gans/mnist',
+       'ENCODER_INIT_PATH': 'none',
+       'ENC_DISC_LR': 1e-05,
+       'NO_TRAINING_IMAGES': True,
+       'GEN_SAMPLES_DISC_LOSS_SCALE': 1.0,
+       'LATENTS_TO_Z_LOSS_SCALE': 1.0,
+       'REC_CYCLED_LOSS_SCALE': 100.0,
+       'GEN_SAMPLES_FAKING_LOSS_SCALE': 1.0,
+       'DATASET_NAME': 'mnist',
+       'ARCH_TYPE': 'mnist',
+       'REC_ITERS': 200,
+       'REC_LR': 0.01,
+       'REC_RR': 1,
+       'IMAGE_DIM': [28, 28, 1],
+       'INPUR_TRANSFORM_TYPE': 1,
+       'BPDA_ENCODER_CP_PATH': 'output/gans_inv_notrain/mnist',
+       'BPDA_GENERATOR_INIT_PATH': 'output/gans/mnist',
+       'cfg_path': 'experiments/cfgs/gans_inv_notrain/mnist.yml'
+       }
+
 FLAGS = flags.FLAGS
 
-#"The architecture of the classifier model.")
-FLAGS_bb_model ='A'
-#"The architecture of the substitute model
+# "The architecture of the classifier model.")
+FLAGS_bb_model = 'A'
+# "The architecture of the substitute model
 FLAGS_sub_model = 'A'
 
 FLAGS_load_bb_model = True
 FLAGS_load_sub_model = True
-#"Type of defense " "[defense_gan|adv_tr|none]")
+# "Type of defense " "[defense_gan|adv_tr|none]")
 FLAGS_defense_type = "defense_gan"
 
-FLAGS_nb_classes= 10
-#'Learning rate for training the black-box model.')
+FLAGS_nb_classes = 10
+# 'Learning rate for training the black-box model.')
 FLAGS_learning_rate = 0.001
-#'Number of epochs to train the blackbox model.')
+# 'Number of epochs to train the blackbox model.')
 FLAGS_nb_epochs = 10
 
-#Test set holdout for adversary.')
+# Test set holdout for adversary.')
 FLAGS_holdout = 150
 # 'Number of substitute data augmentations.')
 FLAGS_data_aug = 6
-#, 'Training epochs for substitute.')
+# , 'Training epochs for substitute.')
 FLAGS_nb_epochs_s = 10
 
-#, 'Lambda from arxiv.org/abs/1602.02697')
+# , 'Lambda from arxiv.org/abs/1602.02697')
 FLAGS_lmbda = 0.1
 
-#, 'FGSM epsilon.')
+# , 'FGSM epsilon.')
 FLAGS_fgsm_eps = 0.3
 
-#, 'FGSM epsilon for adversarial training.')
+# , 'FGSM epsilon for adversarial training.')
 FLAGS_fgsm_eps_tr = 0.15
 
-#, 'Path to Defense-GAN reconstructions.')
+# , 'Path to Defense-GAN reconstructions.')
 FLAGS_rec_path = None
 
-#, 'Number of test samples.')
+# , 'Number of test samples.')
 FLAGS_num_tests = -1
-#, Number of random sampling for testing the classifier.')
+# , Number of random sampling for testing the classifier.')
 FLAGS_random_test_iter = -1
 
-#Train the base classifier based on online reconstructions from Defense-GAN, as opposed to using the cached reconstructions.')
+# Train the base classifier based on online reconstructions from Defense-GAN, as opposed to using the cached reconstructions.')
 FLAGS_online_training = False
 
-#, "The path to results.")
+# , "The path to results.")
 FLAGS_results_dir = "blackbox"
 ##"Train the black-box model on Defense-GAN reconstructions.")
 FLAGS_train_on_recs = False
-#'Number of training samples for the black-box model.')
+# 'Number of training samples for the black-box model.')
 FLAGS_num_train = -1
 
-#, "Directory for debug outputs.")
+# , "Directory for debug outputs.")
 FLAGS_debug_dir = "temp"
 
-#, "True for saving reconstructions [False]")
+# , "True for saving reconstructions [False]")
 FLAGS_debug = False
 # , "Overrides the test hyperparams.")
 FLAGS_override = None
-
-
 
 # orig_ refers to original images and not reconstructed ones.
 # To prepare these cache files run "python main.py --save_ds".
@@ -128,7 +172,7 @@ def prep_bbox(sess, images, labels, images_train, labels_train, images_test,
               adv_training=False, cnn_arch=None):
     """Defines and trains a model that simulates the "remote"
     black-box oracle described in https://arxiv.org/abs/1602.02697.
-    
+
     Args:
         sess: the TF session
         images: the input placeholder
@@ -141,7 +185,7 @@ def prep_bbox(sess, images, labels, images_train, labels_train, images_test,
         batch_size: size of training batches
         learning_rate: learning rate for training
         rng: numpy.random.RandomState
-    
+
     Returns:
         model: The blackbox model function.
         predictions: The predictions tensor.
@@ -158,7 +202,6 @@ def prep_bbox(sess, images, labels, images_train, labels_train, images_test,
         'filename': 'model_{}'.format(FLAGS_bb_model)
     }
     eval_params = {'batch_size': batch_size}
-
 
     used_vars = model.get_params()
     pred_train = model.get_logits(images, dropout=True)
@@ -179,7 +222,7 @@ def prep_bbox(sess, images, labels, images_train, labels_train, images_test,
     if not classifier_load_success:
         print('[+] Training classifier model ...')
         model_train(sess, images, labels, pred_train, images_train, labels_train,
-                args=train_params, rng=rng, predictions_adv=None, init_all=False, save=False)
+                    args=train_params, rng=rng, predictions_adv=None, init_all=False, save=False)
     # Print out the accuracy on legitimate test data.
     accuracy = model_eval(
         sess, images, labels, pred_eval, images_test,
@@ -210,7 +253,7 @@ def train_sub(sess, x, y, bbox_preds, X_sub, Y_sub, nb_classes,
         data_aug: number of times substitute training data is augmented
         lmbda: lambda from arxiv.org/abs/1602.02697
         rng: numpy.random.RandomState instance
-    
+
     Returns:
         model_sub: The substitute model function.
         preds_sub: The substitute prediction tensor.
@@ -256,7 +299,6 @@ def train_sub(sess, x, y, bbox_preds, X_sub, Y_sub, nb_classes,
 
         # If we are not at last substitute training iteration, augment dataset.
         if rho < data_aug - 1:
-
             print("Augmenting substitute training data.")
             # Perform the Jacobian augmentation.
             X_sub = jacobian_augmentation(sess, x, X_sub, Y_sub, grads, lmbda)
@@ -289,8 +331,6 @@ def convert_to_onehot(ys):
     return y_one_hat
 
 
-
-
 def get_train_test(data_path, test_on_dev=True, model=None,
                    orig_data=False, max_num=-1):
     """Loads the datasets.
@@ -300,7 +340,7 @@ def get_train_test(data_path, test_on_dev=True, model=None,
         model: An instance of `GAN`.
         orig_data: `True` for loading original data, `False` to load the
             reconstructed images.
-    
+
     Returns:
         train_images: Training images.
         train_labels: Training labels.
@@ -317,7 +357,7 @@ def get_train_test(data_path, test_on_dev=True, model=None,
         could_load = False
         try:
             if os.path.exists(data_path):
-                with open(data_path,'rb') as f:
+                with open(data_path, 'rb') as f:
                     train_images_gan = pickle.load(f)
                     train_labels_gan = pickle.load(f)
                 could_load = True
@@ -347,11 +387,11 @@ def get_train_test(data_path, test_on_dev=True, model=None,
 
 def get_cached_gan_data(gan, test_on_dev, FLAG_num_train, orig_data_flag=None):
     """Fetches the dataset of a GAN model.
-    
+
     Args:
         gan: The GAN model.
         test_on_dev: `True` for loading the dev set instead of the test set.
-        orig_data_flag: `True` for loading the original images not the 
+        orig_data_flag: `True` for loading the original images not the
             reconstructions.
     Returns:
         train_images: Training images.
@@ -366,7 +406,6 @@ def get_cached_gan_data(gan, test_on_dev, FLAG_num_train, orig_data_flag=None):
         else:
             orig_data_flag = False
 
-
     train_images, train_labels, test_images, test_labels = \
         get_train_test(
             orig_data_path["mnist"], test_on_dev=test_on_dev,
@@ -380,14 +419,14 @@ def blackbox(gan, FLAG_num_train, rec_data_path=None, batch_size=128,
              train_on_recs=False, test_on_dev=False,
              defense_type='none'):
     """MNIST tutorial for the black-box attack from arxiv.org/abs/1602.02697
-    
+
     Args:
         train_start: index of first training set example
         train_end: index of last training set example
         test_start: index of first test set example
         test_end: index of last test set example
         defense_type: Type of defense against blackbox attacks
-    
+
     Returns:
         a dictionary with:
              * black-box model accuracy on test set
@@ -491,10 +530,8 @@ def blackbox(gan, FLAG_num_train, rec_data_path=None, batch_size=128,
         adv_training=adv_training,
         cnn_arch=bb_model)
 
-    #accuracies['bbox'] is the legitimate accuracy
+    # accuracies['bbox'] is the legitimate accuracy
     model, bbox_preds, accuracies['bbox'] = prep_bbox_out
-
-
 
     # Train substitute using method from https://arxiv.org/abs/1602.02697
     print("Training the substitute model.")
@@ -533,8 +570,8 @@ def blackbox(gan, FLAG_num_train, rec_data_path=None, batch_size=128,
         x_adv_sub_val = sess.run(x_adv_sub, feed_dict={images_tensor: x_debug_test})
         x_rec_debug_val = sess.run(recon_tensors, feed_dict={images_tensor: x_debug_test})
         x_rec_orig_val = sess.run(x_rec_orig, feed_dict={images_tensor: x_debug_test})
-        #sess.run(tf.local_variables_initializer())
-        #x_rec_debug_val, x_rec_orig_val = sess.run([reconstructed_tensors, x_rec_orig], feed_dict={images_tensor: x_debug_test})
+        # sess.run(tf.local_variables_initializer())
+        # x_rec_debug_val, x_rec_orig_val = sess.run([reconstructed_tensors, x_rec_orig], feed_dict={images_tensor: x_debug_test})
 
         save_images_files(x_adv_sub_val, output_dir=debug_dir,
                           postfix='adv')
@@ -556,10 +593,11 @@ def blackbox(gan, FLAG_num_train, rec_data_path=None, batch_size=128,
         z_norm = tf.reduce_sum(tf.square(zs), axis=1)
 
         acc_adv, diffs_mean, roc_info_adv = model_eval_gan(sess, images_tensor, labels_tensor,
-                              predictions=model.get_logits(recons_adv),
-                              test_images=test_images, test_labels=test_labels,
-                              args=eval_params, diff_op=diff_op,
-                              z_norm=z_norm, recons_adv=recons_adv, adv_x=x_adv_sub, debug=False)
+                                                           predictions=model.get_logits(recons_adv),
+                                                           test_images=test_images, test_labels=test_labels,
+                                                           args=eval_params, diff_op=diff_op,
+                                                           z_norm=z_norm, recons_adv=recons_adv, adv_x=x_adv_sub,
+                                                           debug=False)
 
         # reconstruction on clean images
         recons_clean, zs = reconstructor.reconstruct(images_tensor, batch_size=batch_size)
@@ -582,9 +620,9 @@ def blackbox(gan, FLAG_num_train, rec_data_path=None, batch_size=128,
 
     else:
         acc_adv = model_eval(sess, images_tensor, labels_tensor,
-                              model.get_logits(x_adv_sub), test_images,
-                              test_labels,
-                              args=eval_params)
+                             model.get_logits(x_adv_sub), test_images,
+                             test_labels,
+                             args=eval_params)
         print('Test accuracy of oracle on adversarial examples generated '
               'using the substitute: ' + str(acc_adv))
         print('Test accuracy of black-box on non adversarial test examples: ' + str(accuracies['bbox']))
@@ -592,7 +630,6 @@ def blackbox(gan, FLAG_num_train, rec_data_path=None, batch_size=128,
                 'acc_rec': 0,
                 'roc_info_adv': None,
                 'roc_info_rec': None}
-
 
 
 def get_reconstructor(gan):
@@ -668,7 +705,6 @@ def main(cfg, argv=None):
             else:
                 assert FLAGS_online_training or not FLAGS_train_on_recs
 
-
     if FLAGS_override:
         gan.rec_rr = int(tr_rr)
         gan.rec_lr = float(tr_lr)
@@ -701,7 +737,6 @@ def main(cfg, argv=None):
                           online_training=FLAGS_online_training,
                           train_on_recs=FLAGS_train_on_recs,
                           defense_type=cfg_TYPE)
-
 
     ensure_dir(results_dir)
 
@@ -736,14 +771,14 @@ def parse_args():
     return args
 
 
-if __name__ == '__main__':
-    args = parse_args()
+# if __name__ == '__main__':
+#     args = parse_args()
 
     # Note: The load_config() call will convert all the parameters that are defined in
     # experiments/config files into FLAGS.param_name and can be passed in from command line.
     # arguments : python blackbox.py --cfg <config_path> --<param_name> <param_value>
-    cfg = load_config(args.cfg)
-    flags = tf.app.flags
+    # cfg = load_config(args.cfg)
+    # flags = tf.app.flags
 
     # ISSUE: the classifiers provided by authors only contain model A - other models need to be trained
     # flags.DEFINE_string("bb_model", 'A',
@@ -794,5 +829,5 @@ if __name__ == '__main__':
     # flags.DEFINE_boolean("debug", False, "True for saving reconstructions [False]")
     # flags.DEFINE_boolean("override", None, "Overrides the test hyperparams.")
 
-    main_cfg = lambda x: main(cfg, x)
-    tf.app.run(main=main_cfg)
+    # main_cfg = lambda x: main(cfg, x)
+    # tf.app.run(main=main_cfg)

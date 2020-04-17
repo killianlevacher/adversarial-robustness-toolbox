@@ -78,7 +78,7 @@ class DefenseGANv2(AbstractModel):
         classifier_var_prefix='Classifier',
         discriminator_var_prefix='Discriminator',
         encoder_var_prefix='Encoder',
-        cfg=None,
+        cfg1=None,
         test_mode=False,
         verbose=True,
         **args

@@ -20,7 +20,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import logging
 import pytest
 
-# from art.defences.preprocessor.inverse_gan import run_whitebox
+from art.defences.preprocessor.inverse_gan import run_whitebox
 logger = logging.getLogger(__name__)
 
 
