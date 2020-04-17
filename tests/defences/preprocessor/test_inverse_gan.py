@@ -22,8 +22,9 @@ import numpy as np
 import pytest
 
 from art.attacks.evasion import FastGradientMethod
+from art.utils import random_targets, get_labels_np_array
 from art.estimators.estimator import BaseEstimator, LossGradientsMixin
-
+from tests.utils import check_adverse_example_x, check_adverse_predicted_sample_y
 from tests.utils import ExpectedValue
 from tests.attacks.utils import backend_check_adverse_values, backend_test_defended_images
 from tests.attacks.utils import backend_test_random_initialisation_images, backend_targeted_images
@@ -45,15 +46,27 @@ def fix_get_mnist_subset(get_mnist_dataset):
 
 def test_inverse_gan(fix_get_mnist_subset, get_image_classifier_list_for_attack):
     print("Hello")
-    # classifier_list = get_image_classifier_list_for_attack(FastGradientMethod)
-    # # TODO this if statement must be removed once we have a classifier for both image and tabular data
-    # if classifier_list is None:
-    #     logging.warning("Couldn't perform  this test because no classifier is defined")
-    #     return
-    #
-    # for classifier in classifier_list:
-    #     attack = FastGradientMethod(classifier, eps=1.0, targeted=True)
-    #     attack_params = {"minimal": True, "eps_step": 0.01, "eps": 1.0}
-    #     attack.set_params(**attack_params)
-    #
-    #     backend_targeted_images(attack, fix_get_mnist_subset)
+    classifier_list = get_image_classifier_list_for_attack(FastGradientMethod)
+
+    classifier = classifier_list[0]
+    attack = FastGradientMethod(classifier, eps=1.0, targeted=True)
+    attack_params = {"minimal": True, "eps_step": 0.01, "eps": 1.0}
+    attack.set_params(**attack_params)
+
+    backend_targeted_images(attack, fix_get_mnist_subset)
+    (x_train_mnist, y_train_mnist, x_test_mnist, y_test_mnist) = fix_get_mnist_subset
+    targets = random_targets(y_test_mnist, attack.estimator.nb_classes)
+    x_test_adv = attack.generate(x_test_mnist, y=targets)
+    assert bool((x_test_mnist == x_test_adv).all()) is False
+
+    y_test_pred_adv = get_labels_np_array(attack.estimator.predict(x_test_adv))
+
+    assert targets.shape == y_test_pred_adv.shape
+    assert (targets == y_test_pred_adv).sum() >= (x_test_mnist.shape[0] // 2)
+
+    check_adverse_example_x(x_test_adv, x_test_mnist)
+
+    y_pred_adv = np.argmax(attack.estimator.predict(x_test_adv), axis=1)
+
+    target = np.argmax(targets, axis=1)
+    assert (target == y_pred_adv).any()
