@@ -20,6 +20,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import logging
 import pytest
 
+from art.defences.preprocessor.inverse_gan import run_whitebox
 logger = logging.getLogger(__name__)
 
 
@@ -33,5 +34,7 @@ def fix_get_mnist_subset(get_mnist_dataset):
 
 def test_inverse_gan(fix_get_mnist_subset):
     (x_train_mnist, y_train_mnist, x_test_mnist, y_test_mnist) = fix_get_mnist_subset
-    #
+    # run_whitebox()
+    tmp = ""
+
 

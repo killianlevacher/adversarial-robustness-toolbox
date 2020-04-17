@@ -34,9 +34,9 @@ import numpy as np
 import tensorflow as tf
 
 
-from cleverhans.attacks import FastGradientMethod
-from cleverhans.utils import set_log_level, AccuracyReport
-from cleverhans.utils_tf import  model_eval
+from art.defences.cleverhans.attacks import FastGradientMethod
+from art.defences.cleverhans.utils import set_log_level, AccuracyReport
+from art.defences.cleverhans.utils_tf import  model_eval
 
 
 from art.defences.preprocessor_gan.blackbox_art import get_cached_gan_data, get_reconstructor
@@ -288,7 +288,7 @@ def gan_from_config(cfg, test_mode):
         # gan = DefenseGANBase(cfg=cfg, test_mode=test_mode)
     return gan
 
-def main(cfg, argv=None):
+def gan_main():
     FLAGS = tf.app.flags.FLAGS
 
     tf.set_random_seed(11241990)
@@ -408,29 +408,29 @@ def _get_vis_dir(gan, attack_type):
     return vis_dir
 
 
-def parse_args():
-    parser = argparse.ArgumentParser()
+# def parse_args():
+#     parser = argparse.ArgumentParser()
+#
+#     parser.add_argument('--cfg', required=True, help='Config file')
+#     parser.add_argument("--alpha", type=float, default=0.05,
+#                         help="RAND+FGSM random perturbation scale")
+#
+#     if len(sys.argv) == 1:
+#         parser.print_help()
+#         sys.exit(1)
+#     args, _ = parser.parse_known_args()
+#     return args
 
-    parser.add_argument('--cfg', required=True, help='Config file')
-    parser.add_argument("--alpha", type=float, default=0.05,
-                        help="RAND+FGSM random perturbation scale")
 
-    if len(sys.argv) == 1:
-        parser.print_help()
-        sys.exit(1)
-    args, _ = parser.parse_known_args()
-    return args
-
-
-if __name__ == '__main__':
-    args = parse_args()
+# if __name__ == '__main__':
+#     args = parse_args()
 
     # Note: The load_config() call will convert all the parameters that are defined in
     # experiments/config files into FLAGS.param_name and can be passed in from command line.
     # arguments : python whitebox.py --cfg <config_path> --<param_name> <param_value>
 
-    cfg = load_config(args.cfg)
-    flags = tf.app.flags
+    # cfg = load_config(args.cfg)
+    # flags = tf.app.flags
 
     # flags.DEFINE_boolean("load_classifier", True, "True for loading from saved classifier models [False]")
     # flags.DEFINE_string("attack_type", "fgsm", "Type of attack [fgsm|cw|bpda]")
@@ -489,5 +489,5 @@ if __name__ == '__main__':
     #                      "Train the classifier on the reconstructed samples "
     #                      "using Defense-GAN.")
 
-    main_cfg = lambda x: main(cfg, x)
-    tf.app.run(main=main_cfg)
+    # main_cfg = lambda x: main(cfg, x)
+    # tf.app.run(main=main_cfg)
