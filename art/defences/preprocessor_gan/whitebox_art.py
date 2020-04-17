@@ -31,9 +31,9 @@ import sys
 import numpy as np
 import tensorflow as tf
 
-from art.defences.cleverhans.attacks import FastGradientMethod
-from art.defences.cleverhans.utils import set_log_level, AccuracyReport
-from art.defences.cleverhans.utils_tf import model_eval
+# from art.defences.cleverhans.attacks.fast_gradient_method import FastGradientMethod
+# from art.defences.cleverhans.utils import set_log_level, AccuracyReport
+# from art.defences.cleverhans.utils_tf import model_eval
 
 from art.defences.preprocessor_gan.blackbox_art import get_cached_gan_data, get_reconstructor
 from art.defences.preprocessor_gan.gan_v2_art import DefenseGANv2, InvertorDefenseGAN
@@ -167,7 +167,7 @@ def whitebox(gan, rec_data_path=None, batch_size=128, learning_rate=0.001,
     rng = np.random.RandomState([11, 24, 1990])
 
     # Set logging level to see debug information.
-    set_log_level(logging.WARNING)
+    # set_log_level(logging.WARNING)
 
     ### Attack paramters
     eps = attack_config_dict[gan.dataset_name]['eps']
@@ -333,7 +333,7 @@ def gan_from_config(cfg, test_mode):
     return gan
 
 
-def main(cfg, argv=None):
+def run_whitebox(cfg, argv=None):
     FLAGS = tf.app.flags.FLAGS
 
     tf.set_random_seed(11241990)
