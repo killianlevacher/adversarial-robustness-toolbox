@@ -38,23 +38,7 @@ def get_image_classifier_list_defended(framework):
     return _get_image_classifier_list_defended
 
 
-@pytest.fixture
-def get_image_classifier_list_for_attack(get_image_classifier_list, get_image_classifier_list_defended):
-    def get_image_classifier_list_for_attack(attack, defended=False, **kwargs):
-        if defended:
-            classifier_list, _ = get_image_classifier_list_defended(kwargs)
-        else:
-            classifier_list, _ = get_image_classifier_list()
-        if classifier_list is None:
-            return None
 
-        return [
-            potential_classifier
-            for potential_classifier in classifier_list
-            if all(t in type(potential_classifier).__mro__ for t in attack._estimator_requirements)
-        ]
-
-    return get_image_classifier_list_for_attack
 
 
 @pytest.fixture
