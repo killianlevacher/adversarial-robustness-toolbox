@@ -33,10 +33,10 @@ import tensorflow as tf
 from six.moves import xrange
 from tensorflow.python.platform import flags
 
-from art.defences.cleverhans.attacks.fast_gradient_method import FastGradientMethod
-from art.defences.cleverhans.attacks_tf import jacobian_graph, jacobian_augmentation
-from art.defences.cleverhans.utils import set_log_level, to_categorical
-from art.defences.cleverhans.utils_tf import model_train, model_eval, batch_eval
+# from art.defences.cleverhans.attacks.fast_gradient_method import FastGradientMethod
+# from art.defences.cleverhans.attacks_tf import jacobian_graph, jacobian_augmentation
+# from art.defences.cleverhans.utils import set_log_level, to_categorical
+# from art.defences.cleverhans.utils_tf import model_train, model_eval, batch_eval
 
 from art.defences.preprocessor_gan.gan_v2_art import InvertorDefenseGAN, gan_from_config
 from art.defences.preprocessor_gan.gan_defense_art import model_eval_gan

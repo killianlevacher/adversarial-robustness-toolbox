@@ -19,6 +19,20 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import logging
 import pytest
+import numpy as np
+
+from art.attacks.evasion import FastGradientMethod
+from art.estimators.estimator import BaseEstimator, LossGradientsMixin
+
+from tests.utils import ExpectedValue
+from tests.attacks.utils import backend_check_adverse_values, backend_test_defended_images
+from tests.attacks.utils import backend_test_random_initialisation_images, backend_targeted_images
+from tests.attacks.utils import backend_targeted_tabular, backend_untargeted_tabular, backend_masked_images
+from tests.attacks.utils import backend_test_classifier_type_check_fail
+from art.utils import random_targets, get_labels_np_array
+from art.exceptions import EstimatorError
+
+from tests.utils import check_adverse_example_x, check_adverse_predicted_sample_y
 
 from art.defences.preprocessor.inverse_gan import run_whitebox
 logger = logging.getLogger(__name__)
@@ -32,8 +46,30 @@ def fix_get_mnist_subset(get_mnist_dataset):
     yield (x_train_mnist[:n_train], y_train_mnist[:n_train], x_test_mnist[:n_test], y_test_mnist[:n_test])
 
 
-def test_inverse_gan(fix_get_mnist_subset):
+def test_inverse_gan(fix_get_mnist_subset, get_image_classifier_list_for_attack):
     (x_train_mnist, y_train_mnist, x_test_mnist, y_test_mnist) = fix_get_mnist_subset
+    #
+    # classifier_list = get_image_classifier_list_for_attack(FastGradientMethod, defended=True)
+    #
+    # classifier = classifier_list[0]
+    # attack = FastGradientMethod(classifier, eps=1, batch_size=128)
+    # # backend_test_defended_images(attack, fix_get_mnist_subset)
+    # x_train_adv = attack.generate(x_train_mnist)
+    #
+    # # check_adverse_example_x(x_train_adv, x_train_mnist)
+    #
+    # y_train_pred_adv = get_labels_np_array(attack.classifier.predict(x_train_adv))
+    # y_train_labels = get_labels_np_array(y_train_mnist)
+    #
+    # # check_adverse_predicted_sample_y(y_train_pred_adv, y_train_labels)
+    #
+    # x_test_adv = attack.generate(x_test_mnist)
+    # # check_adverse_example_x(x_test_adv, x_test_mnist)
+    #
+    # y_test_pred_adv = get_labels_np_array(attack.classifier.predict(x_test_adv))
+    # check_adverse_predicted_sample_y(y_test_pred_adv, y_test_mnist)
+
+
     # run_whitebox()
     tmp = ""
 

@@ -22,12 +22,12 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.contrib import slim
 from tensorflow.python.ops.losses.losses_impl import Reduction
-import tflib
-import tflib.cifar10
-import tflib.mnist
-import tflib.plot
-import tflib.save_images
-from tflib.layers import generator_loss, discriminator_loss
+import art.defences.preprocessor_gan.tflib
+import art.defences.preprocessor_gan.tflib.cifar10
+import art.defences.preprocessor_gan.tflib.mnist
+import art.defences.preprocessor_gan.tflib.plot
+import art.defences.preprocessor_gan.tflib.save_images
+from art.defences.preprocessor_gan.tflib.layers import generator_loss, discriminator_loss
 
 from art.defences.preprocessor_gan.base_model_art import AbstractModel
 from art.defences.preprocessor_gan.util_art import get_encoder_fn, get_discriminator_fn
