@@ -53,13 +53,17 @@ def test_inverse_gan(fix_get_mnist_subset, get_image_classifier_list_for_attack)
     attack_params = {"minimal": True, "eps_step": 0.01, "eps": 1.0}
     attack.set_params(**attack_params)
 
-    backend_targeted_images(attack, fix_get_mnist_subset)
+    # backend_targeted_images(attack, fix_get_mnist_subset)
     (x_train_mnist, y_train_mnist, x_test_mnist, y_test_mnist) = fix_get_mnist_subset
+
+
+    #Generate Adverse Example and Prediction
     targets = random_targets(y_test_mnist, attack.estimator.nb_classes)
     x_test_adv = attack.generate(x_test_mnist, y=targets)
     assert bool((x_test_mnist == x_test_adv).all()) is False
 
     y_test_pred_adv = get_labels_np_array(attack.estimator.predict(x_test_adv))
+
 
     assert targets.shape == y_test_pred_adv.shape
     assert (targets == y_test_pred_adv).sum() >= (x_test_mnist.shape[0] // 2)
@@ -70,3 +74,5 @@ def test_inverse_gan(fix_get_mnist_subset, get_image_classifier_list_for_attack)
 
     target = np.argmax(targets, axis=1)
     assert (target == y_pred_adv).any()
+
+
