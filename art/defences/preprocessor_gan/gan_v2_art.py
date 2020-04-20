@@ -22,11 +22,11 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.contrib import slim
 from tensorflow.python.ops.losses.losses_impl import Reduction
-import art.defences.preprocessor_gan.tflib
-import art.defences.preprocessor_gan.tflib.cifar10
-import art.defences.preprocessor_gan.tflib.mnist
-import art.defences.preprocessor_gan.tflib.plot
-import art.defences.preprocessor_gan.tflib.save_images
+# import art.defences.preprocessor_gan.tflib
+# import art.defences.preprocessor_gan.tflib.cifar10
+# import art.defences.preprocessor_gan.tflib.mnist
+# import art.defences.preprocessor_gan.tflib.plot
+# import art.defences.preprocessor_gan.tflib.save_images
 from art.defences.preprocessor_gan.tflib.layers import generator_loss, discriminator_loss
 
 from art.defences.preprocessor_gan.base_model_art import AbstractModel
@@ -78,7 +78,7 @@ class DefenseGANv2(AbstractModel):
         classifier_var_prefix='Classifier',
         discriminator_var_prefix='Discriminator',
         encoder_var_prefix='Encoder',
-        cfg1=None,
+        cfg=None,
         test_mode=False,
         verbose=True,
         **args

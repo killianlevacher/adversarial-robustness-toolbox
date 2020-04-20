@@ -153,7 +153,8 @@ class Dataset(object):
         data_dir: The directory where the dataset resides.
     """
 
-    def __init__(self, name, data_dir='./data'):
+    def __init__(self, name, data_dir="../../../resources/defences/preprocessor/defenceGan/"):
+    # def __init__(self, name, data_dir='./data'):
         """The datasaet default constructor.
 
             Args:
@@ -319,6 +320,7 @@ def get_generators(dataset_name, batch_size, randomize=True, attribute='gender')
         Training, validation, and test dataset generators which are the
             return values of `create_generator`.
     """
+    # TODO get rid of the 3 just keep one
     splits = ['train', 'val', 'test']
     gens = []
     for i in range(3):
