@@ -38,8 +38,8 @@ logger = logging.getLogger(__name__)
 @pytest.fixture()
 def fix_get_mnist_subset(get_mnist_dataset):
     (x_train_mnist, y_train_mnist), (x_test_mnist, y_test_mnist) = get_mnist_dataset
-    n_train = 100
-    n_test = 11
+    n_train = 50
+    n_test = 50
     yield (x_train_mnist[:n_train], y_train_mnist[:n_train], x_test_mnist[:n_test], y_test_mnist[:n_test])
 
 
@@ -65,7 +65,7 @@ def test_inverse_gan(fix_get_mnist_subset, get_image_classifier_list_for_attack)
 
     y_test_pred_adv = get_labels_np_array(attack.estimator.predict(x_test_adv))
 
-    run_whitebox()
+    run_whitebox(x_train_mnist, y_train_mnist)
 
     # assert targets.shape == y_test_pred_adv.shape
     # assert (targets == y_test_pred_adv).sum() >= (x_test_mnist.shape[0] // 2)

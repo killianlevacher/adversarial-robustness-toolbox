@@ -1,4 +1,6 @@
 from art.defences.preprocessor_gan.whitebox_art import gan_from_config, run_whitebox
+from art.defences.preprocessor_gan.blackbox_art import get_reconstructor
+import tensorflow as tf
 
 cfg = {'TYPE': 'inv',
        'MODE': 'hingegan',
@@ -49,8 +51,17 @@ cfg = {'TYPE': 'inv',
        'cfg_path': 'experiments/cfgs/gans_inv_notrain/mnist.yml'
        }
 
-def run_whitebox():
+def run_whitebox(x_train_mnist, y_train_mnist):
     # run_whitebox()
     gan = gan_from_config(cfg, True)
 
     gan.load_model()
+
+    reconstructor = get_reconstructor(gan)
+
+    images_pl = tf.placeholder(tf.float32, shape=[None] + list(x_train_mnist.shape[1:]))
+    labels_pl = tf.placeholder(tf.float32, shape=[None] + [y_train_mnist.shape[1]])
+
+    recons_adv, zs = reconstructor.reconstruct(images_pl, batch_size=cfg["BATCH_SIZE"], reconstructor_id=123)
+
+    print("Finished")
