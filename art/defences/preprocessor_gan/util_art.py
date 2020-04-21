@@ -119,6 +119,7 @@ def mnist_discriminator(x, update_collection=None, is_training=False):
         x = linear(x, 1, sn=use_sn, update_collection=update_collection, name='linear')
         return tf.reshape(x, [-1])
 
+#TODO this is the InverseGAN encoder
 def mnist_encoder(x, is_training=False, use_bn=False, net_dim=64, latent_dim=128):
     with tf.variable_scope('Encoder', reuse=tf.AUTO_REUSE):
         x = conv2d(x, net_dim, 5, 2, name='conv0')
@@ -153,8 +154,9 @@ class Dataset(object):
         data_dir: The directory where the dataset resides.
     """
 
-    def __init__(self, name, data_dir="../../../resources/defences/preprocessor/defenceGan/"):
-    # def __init__(self, name, data_dir='./data'):
+    # def __init__(self, name, data_dir="./resources/defences/preprocessor/defenceGan/"):
+    # def __init__(self, name, data_dir="../../../resources/defences/preprocessor/defenceGan/"):
+    def __init__(self, name, data_dir='./data'):
         """The datasaet default constructor.
 
             Args:
@@ -218,8 +220,8 @@ class Mnist(Dataset):
         if split in self.split_data.keys():
             return self.split_data[split]
 
-        data_dir = self.data_dir
-
+        # data_dir = self.data_dir
+        data_dir = "./data_defenceGan/mnist"
         fd = open(os.path.join(data_dir, 'train-images-idx3-ubyte'))
         loaded = np.fromfile(file=fd, dtype=np.uint8)
         train_images = loaded[16:].reshape((60000, 28, 28, 1)).astype(np.float)

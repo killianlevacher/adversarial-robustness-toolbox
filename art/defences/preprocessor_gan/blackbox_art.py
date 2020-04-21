@@ -50,7 +50,7 @@ cfg_REC_LR = 0.01
 cfg_REC_ITERS = 200
 cfg_BATCH_SIZE = 50
 cfg_TYPE = "inv"
-# cfg_TYPE = "v2"
+cfg_TYPE = "v2"
 
 cfg = {'TYPE': 'inv',
        'MODE': 'hingegan',

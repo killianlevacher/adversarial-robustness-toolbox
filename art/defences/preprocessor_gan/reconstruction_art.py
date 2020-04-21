@@ -16,7 +16,7 @@ class Reconstructor(object):
         batch_size = gan.batch_size
         image_dim = gan.image_dim
         latent_dim = gan.latent_dim
-        rec_lr = gan.rec_lr
+        rec_lr = gan.rec_lr # reconstruction learning rate
         rec_rr = gan.rec_rr
 
         self.sess = gan.sess
@@ -27,11 +27,11 @@ class Reconstructor(object):
 
         timg_tiled_rr = tf.reshape(timg, [x_shape[0], np.prod(x_shape[1:])])
         timg_tiled_rr = tf.tile(timg_tiled_rr, [1, rec_rr])
-        timg_tiled_rr = tf.reshape(
-            timg_tiled_rr, [x_shape[0] * rec_rr] + x_shape[1:])
+        timg_tiled_rr = tf.reshape(timg_tiled_rr, [x_shape[0] * rec_rr] + x_shape[1:])
 
         if isinstance(gan, InvertorDefenseGAN):
             # DefenseGAN++
+            #TODO I think what it's calling the encoder_fn is the Inverse GAN going from Image to Z
             z_init = gan.encoder_fn(timg_tiled_rr, is_training=False)[0]
         else:
             # DefenseGAN
@@ -44,6 +44,7 @@ class Reconstructor(object):
         # Define optimization
         modifier = tf.Variable(np.zeros((batch_size * rec_rr, latent_dim)), dtype=tf.float32, name='z_modifier')
 
+        #TODO and this is the generator
         self.z_hats_recs = gan.generator_fn(z_init + modifier, is_training=False)
 
         num_dim = len(self.z_hats_recs.get_shape())
@@ -65,6 +66,8 @@ class Reconstructor(object):
         # Setup the adam optimizer and keep track of variables we're creating
         start_vars = set(x.name for x in tf.global_variables())
         optimizer = tf.train.AdamOptimizer(rec_lr)
+
+        #TODO the loss function for which to compute the gradients
         self.train_op = optimizer.minimize(rec_loss, var_list=[modifier])
         end_vars = tf.global_variables()
         new_vars = [x for x in end_vars if x.name not in start_vars]
@@ -76,6 +79,7 @@ class Reconstructor(object):
         print('Reconstruction module initialzied...\n')
 
     def reconstruct_batch(self, images, batch_size):
+        #TODO this is the heart of the system which predicts bot the z and reconstructed images
         # images and batch_size are treated as numpy
 
         self.sess.run(self.init_opt)
