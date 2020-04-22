@@ -32,10 +32,10 @@ class Reconstructor(object):
 
         if isinstance(gan, InvertorDefenseGAN):
             # DefenseGAN++
-            z_init = gan.encoder_fn(timg_tiled_rr, is_training=False)[0]
+            self.z_init = gan.encoder_fn(timg_tiled_rr, is_training=False)[0]
         else:
             # DefenseGAN
-            z_init = tf.Variable(np.random.normal(size=(batch_size * rec_rr, latent_dim)),
+            self.z_init = tf.Variable(np.random.normal(size=(batch_size * rec_rr, latent_dim)),
                                  collections=[tf.GraphKeys.LOCAL_VARIABLES],
                                  trainable=False,
                                  dtype=tf.float32,
@@ -44,36 +44,60 @@ class Reconstructor(object):
         # Define optimization #Killian this is where the delta applied to z_init is created
         modifier = tf.Variable(np.zeros((batch_size * rec_rr, latent_dim)), dtype=tf.float32, name='z_modifier')
 
-        self.z_hats_recs = gan.generator_fn(z_init + modifier, is_training=False)
+        self.z_hats_recs = gan.generator_fn(self.z_init + modifier, is_training=False)
 
-        num_dim = len(self.z_hats_recs.get_shape())
-        #P2 version axes = range(1, num_dim) - fix: https://github.com/WojciechMormul/gan/issues/3
-        axes = list(range(1, num_dim))
-
-        self.image_rec_loss = tf.reduce_mean(tf.square(self.z_hats_recs - timg_tiled_rr), axis=axes)
-        rec_loss = tf.reduce_sum(self.image_rec_loss)
-
-        # Handle random restart
-        final_recs = []
-        for i in range(batch_size):
-            ind = i * rec_rr + tf.argmin(self.image_rec_loss[i * rec_rr:(i + 1) * rec_rr], axis=0)
-            final_recs.append(self.z_hats_recs[tf.cast(ind, tf.int32)])
-
-        self.online_rec = tf.stack(final_recs)
-        self.online_zs = z_init + modifier
-
-        # Setup the adam optimizer and keep track of variables we're creating
+        # num_dim = len(self.z_hats_recs.get_shape())
+        # #P2 version axes = range(1, num_dim) - fix: https://github.com/WojciechMormul/gan/issues/3
+        # axes = list(range(1, num_dim))
+        #
+        # self.image_rec_loss = tf.reduce_mean(tf.square(self.z_hats_recs - timg_tiled_rr), axis=axes)
+        # rec_loss = tf.reduce_sum(self.image_rec_loss)
+        #
+        # # Handle random restart
+        # final_recs = []
+        # for i in range(batch_size):
+        #     ind = i * rec_rr + tf.argmin(self.image_rec_loss[i * rec_rr:(i + 1) * rec_rr], axis=0)
+        #     final_recs.append(self.z_hats_recs[tf.cast(ind, tf.int32)])
+        #
+        # self.online_rec = tf.stack(final_recs)
+        # self.online_zs = z_init + modifier
+        #
+        # # Setup the adam optimizer and keep track of variables we're creating
         start_vars = set(x.name for x in tf.global_variables())
-        optimizer = tf.train.AdamOptimizer(rec_lr)
-        self.train_op = optimizer.minimize(rec_loss, var_list=[modifier])
+        # optimizer = tf.train.AdamOptimizer(rec_lr)
+        # self.train_op = optimizer.minimize(rec_loss, var_list=[modifier])
         end_vars = tf.global_variables()
         new_vars = [x for x in end_vars if x.name not in start_vars]
-
+        #
         self.assign_timg = tf.placeholder(tf.float32, x_shape, name='assign_timg')
         self.setup = tf.assign(timg, self.assign_timg)
         self.init_opt = tf.variables_initializer(var_list=[modifier] + new_vars)
 
         print('Reconstruction module initialzied...\n')
+
+    def generate_z_batch(self, images, batch_size):
+        # images and batch_size are treated as numpy
+
+        self.sess.run(self.init_opt)
+        self.sess.run(self.setup, feed_dict={self.assign_timg: images})
+
+        for _ in range(self.rec_iters):
+            unmodified_z = self.sess.run([self.z_init])
+
+        return unmodified_z
+
+    def generate_z(self, images, batch_size=None, back_prop=False, reconstructor_id=0):
+        x_shape = images.get_shape().as_list()
+        x_shape[0] = batch_size
+
+        def recon_wrap(im, b):
+            unmodified_z = self.generate_z_batch(im, b)
+            return np.array(unmodified_z, dtype=np.float32)
+
+        unmodified_z = tf.py_func(recon_wrap, [images, batch_size], [tf.float32])
+        #unmodified_z is the equivalent of all_zs/online_zs in original code WITHOUT the modifier
+
+        return tf.stop_gradient(unmodified_z)
 
     def reconstruct_batch(self, images, batch_size):
         # images and batch_size are treated as numpy
