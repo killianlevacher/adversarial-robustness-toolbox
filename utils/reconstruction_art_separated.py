@@ -97,7 +97,7 @@ class Reconstructor(object):
 
         print('Reconstruction module initialzied...\n')
 
-    def generate_z_batch(self, images, z_init_numpy, modifier_numpy, batch_size):
+    def generate_z_batch(self, images, batch_size):
         # images and batch_size are treated as numpy
 
         self.sess.run(self.init_opt)
@@ -117,7 +117,7 @@ class Reconstructor(object):
             return np.array(unmodified_z, dtype=np.float32)
 
         unmodified_z = tf.py_func(recon_wrap, [images, batch_size], [tf.float32])
-        #unmodified_z is the equivalent of all_zs/online_zs in original code WITHOUT the modifier
+        # unmodified_z is the equivalent of all_zs/online_zs in original code WITHOUT the modifier
 
         return tf.stop_gradient(unmodified_z)
 
