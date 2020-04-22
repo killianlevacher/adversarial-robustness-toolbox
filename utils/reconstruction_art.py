@@ -70,6 +70,7 @@ class Reconstructor(object):
         new_vars = [x for x in end_vars if x.name not in start_vars]
 
         self.assign_timg = tf.placeholder(tf.float32, x_shape, name='assign_timg')
+
         self.setup = tf.assign(timg, self.assign_timg)
         self.init_opt = tf.variables_initializer(var_list=[modifier] + new_vars)
 

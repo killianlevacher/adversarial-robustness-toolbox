@@ -111,10 +111,10 @@ print("Encoded image into Z form")
 
 
 latent_dim=128
-# modifier_placeholder = tf.placeholder(tf.float32, shape=[cfg["BATCH_SIZE"],latent_dim], name='z_modifier_placeholder1')
-# z_init_input_placeholder = tf.placeholder(tf.float32, shape=[1,1,cfg["BATCH_SIZE"],latent_dim], name='z_init_input_placeholder1')
+z_init_input_placeholder = tf.placeholder(tf.float32, shape=[1,1,cfg["BATCH_SIZE"],latent_dim], name='z_init_input_placeholder1')
+modifier_placeholder = tf.placeholder(tf.float32, shape=[cfg["BATCH_SIZE"],latent_dim], name='z_modifier_placeholder1')
 
-image_tensor = reconstructor.generate_image(images_tensor, reconstructor.modifier_placeholder, reconstructor.z_init_input_placeholder,  batch_size=cfg["BATCH_SIZE"], reconstructor_id=3)
+image_tensor = reconstructor.generate_image(images_tensor,  z_init_input_placeholder, modifier_placeholder,  batch_size=cfg["BATCH_SIZE"], reconstructor_id=3)
 
 
 

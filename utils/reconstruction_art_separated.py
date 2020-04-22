@@ -41,14 +41,17 @@ class Reconstructor(object):
                                  dtype=tf.float32,
                                  name='z_init_rec')
 
+        modifier_killian = tf.Variable(np.zeros([batch_size,latent_dim]), dtype=tf.float32, name='modifier_killian')
+
+        z_init = tf.Variable(np.zeros([1, 1, batch_size, latent_dim]), dtype=tf.float32, name='z_init')
+        z_init_reshaped = tf.reshape(z_init, [batch_size, latent_dim])
+
         # Define optimization #Killian this is where the delta applied to z_init is created
         # modifier = tf.Variable(np.zeros((batch_size * rec_rr, latent_dim)), dtype=tf.float32, name='z_modifier')
-        self.modifier_placeholder = tf.placeholder(tf.float32, shape=[batch_size,latent_dim], name='z_modifier_placeholder')
 
-        self.z_init_input_placeholder = tf.placeholder(tf.float32, shape=[1,1,batch_size,latent_dim], name='z_init_input_placeholder')
-
-        z_init_input_reshaped_placeholder = tf.reshape(self.z_init_input_placeholder, [batch_size,latent_dim])
-        self.z_hats_recs = gan.generator_fn(z_init_input_reshaped_placeholder + self.modifier_placeholder, is_training=False)
+        #
+        # z_init_input_reshaped_placeholder = tf.reshape(self.z_init_input_placeholder, [batch_size,latent_dim])
+        self.z_hats_recs = gan.generator_fn(z_init_reshaped + modifier_killian, is_training=False)
         tmp = ""
         #original self.z_hats_recs = gan.generator_fn(self.z_init + modifier, is_training=False)
 
@@ -79,14 +82,22 @@ class Reconstructor(object):
 
         #TODO I don't think we need the assign and timg variables anymore
         self.assign_timg = tf.placeholder(tf.float32, x_shape, name='assign_timg')
+        self.z_init_input_placeholder = tf.placeholder(tf.float32, shape=[1, 1, batch_size, latent_dim],
+                                                       name='z_init_input_placeholder')
+        self.modifier_placeholder = tf.placeholder(tf.float32, shape=[batch_size, latent_dim],
+                                                   name='z_modifier_placeholder')
+
         self.setup = tf.assign(timg, self.assign_timg)
+        self.setup_z_init = tf.assign(z_init, self.z_init_input_placeholder)
+        self.setup_modifier_killian = tf.assign(modifier_killian, self.modifier_placeholder)
+
 
         #original self.init_opt = tf.variables_initializer(var_list=[modifier] + new_vars)
         self.init_opt = tf.variables_initializer(var_list=[] + new_vars)
 
         print('Reconstruction module initialzied...\n')
 
-    def generate_z_batch(self, images, batch_size):
+    def generate_z_batch(self, images, z_init_numpy, modifier_numpy, batch_size):
         # images and batch_size are treated as numpy
 
         self.sess.run(self.init_opt)
@@ -110,28 +121,28 @@ class Reconstructor(object):
 
         return tf.stop_gradient(unmodified_z)
 
-    def generate_image_batch(self, images, modifier_placeholder, z_init_input_placeholder, batch_size):
+    def generate_image_batch(self, images, z_init_numpy, modifier_numpy, batch_size):
         # images and batch_size are treated as numpy
 
         self.sess.run(self.init_opt)
-        self.sess.run(self.setup, feed_dict={self.assign_timg: images,
-                                             self.modifier_placeholder: modifier_placeholder,
-                                             self.z_init_input_placeholder: z_init_input_placeholder})
+        self.sess.run(self.setup, self.setup_z_init, self.setup_modifier_killian, feed_dict={self.assign_timg: images,
+                                                                                             self.z_init_input_placeholder: z_init_numpy,
+                                                                                             self.modifier_placeholder: modifier_numpy})
 
         for _ in range(self.rec_iters):
             all_z_recs = self.sess.run([self.z_hats_recs])
 
         return all_z_recs
 
-    def generate_image(self, images, modifier_placeholder, z_init_input_placeholder, batch_size=None, back_prop=False, reconstructor_id=0):
+    def generate_image(self, images,  z_init_numpy, modifier_numpy, batch_size=None, back_prop=False, reconstructor_id=0):
         x_shape = images.get_shape().as_list()
         x_shape[0] = batch_size
 
-        def recon_wrap(im, modifier_placeholder, z_init_input_placeholder, b):
-            z_recs = self.generate_image_batch(im, modifier_placeholder, z_init_input_placeholder, b)
+        def recon_wrap(im,  z_init_numpy, modifier_numpy, b):
+            z_recs = self.generate_image_batch(im, z_init_numpy, modifier_numpy, b)
             return np.array(z_recs, dtype=np.float32)
 
-        all_z_recs = tf.py_func(recon_wrap, [images, modifier_placeholder, z_init_input_placeholder, batch_size], [tf.float32])
+        all_z_recs = tf.py_func(recon_wrap, [images, z_init_numpy, modifier_numpy, batch_size], [tf.float32])
         # all_z_recs.set_shape(x_shape)
 
         return tf.stop_gradient(all_z_recs)
