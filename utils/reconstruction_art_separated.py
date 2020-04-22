@@ -125,9 +125,13 @@ class Reconstructor(object):
         # images and batch_size are treated as numpy
 
         self.sess.run(self.init_opt)
-        self.sess.run(self.setup, self.setup_z_init, self.setup_modifier_killian, feed_dict={self.assign_timg: images,
-                                                                                             self.z_init_input_placeholder: z_init_numpy,
-                                                                                             self.modifier_placeholder: modifier_numpy})
+        # self.sess.run(self.setup, self.setup_z_init, self.setup_modifier_killian, feed_dict={self.assign_timg: images,
+        #                                                                                      self.z_init_input_placeholder: z_init_numpy,
+        #                                                                                      self.modifier_placeholder: modifier_numpy})
+        self.sess.run(self.setup, feed_dict={self.assign_timg: images})
+        self.sess.run(self.setup_z_init, feed_dict={self.z_init_input_placeholder: z_init_numpy,
+                                                    self.modifier_placeholder: modifier_numpy})
+        self.sess.run(self.setup_modifier_killian, feed_dict={self.modifier_placeholder: modifier_numpy})
 
         for _ in range(self.rec_iters):
             all_z_recs = self.sess.run([self.z_hats_recs])
