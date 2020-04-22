@@ -97,16 +97,33 @@ labels_tensor = tf.placeholder(tf.float32, shape=(None, classes))
 reconstructor = Reconstructor(gan)
 # reconstructor = get_reconstructor(gan)
 
-unmodified_z = reconstructor.generate_z(images_tensor, batch_size=cfg["BATCH_SIZE"], reconstructor_id=3)
+unmodified_z_tensor = reconstructor.generate_z(images_tensor, batch_size=cfg["BATCH_SIZE"], reconstructor_id=3)
 
 # x_rec_orig, _ = reconstructor.reconstruct(images_tensor, batch_size=cfg["BATCH_SIZE"], reconstructor_id=3)
 # image_batch = train_images[:cfg["BATCH_SIZE"]]
 with open("image_batch.pkl", 'rb') as f:
     image_batch = pickle.load(f)
 
-unmodified_z_value = sess.run(unmodified_z, feed_dict={images_tensor: image_batch})
+unmodified_z_value = sess.run(unmodified_z_tensor, feed_dict={images_tensor: image_batch})
 # x_rec_orig_val = sess.run(x_rec_orig, feed_dict={images_tensor: image_batch})
 # save_images_files(x_rec_orig_val, output_dir="debug/blackbox/tempKillian", postfix='orig_rec')
+print("Encoded image into Z form")
+
+
+latent_dim=128
+# modifier_placeholder = tf.placeholder(tf.float32, shape=[cfg["BATCH_SIZE"],latent_dim], name='z_modifier_placeholder1')
+# z_init_input_placeholder = tf.placeholder(tf.float32, shape=[1,1,cfg["BATCH_SIZE"],latent_dim], name='z_init_input_placeholder1')
+
+image_tensor = reconstructor.generate_image(images_tensor, reconstructor.modifier_placeholder, reconstructor.z_init_input_placeholder,  batch_size=cfg["BATCH_SIZE"], reconstructor_id=3)
+
+
+
+random_modifier = np.random.rand(cfg["BATCH_SIZE"],latent_dim)
+
+image_value = sess.run(image_tensor, feed_dict={images_tensor: image_batch,
+                                                reconstructor.z_init_input_placeholder: unmodified_z_value,
+                                                reconstructor.modifier_placeholder: random_modifier})
+
 print("Finished")
 ######## Killian test
 

@@ -42,9 +42,16 @@ class Reconstructor(object):
                                  name='z_init_rec')
 
         # Define optimization #Killian this is where the delta applied to z_init is created
-        modifier = tf.Variable(np.zeros((batch_size * rec_rr, latent_dim)), dtype=tf.float32, name='z_modifier')
+        # modifier = tf.Variable(np.zeros((batch_size * rec_rr, latent_dim)), dtype=tf.float32, name='z_modifier')
+        self.modifier_placeholder = tf.placeholder(tf.float32, shape=[batch_size,latent_dim], name='z_modifier_placeholder')
 
-        self.z_hats_recs = gan.generator_fn(self.z_init + modifier, is_training=False)
+        self.z_init_input_placeholder = tf.placeholder(tf.float32, shape=[1,1,batch_size,latent_dim], name='z_init_input_placeholder')
+
+        z_init_input_reshaped_placeholder = tf.reshape(self.z_init_input_placeholder, [batch_size,latent_dim])
+        self.z_hats_recs = gan.generator_fn(z_init_input_reshaped_placeholder + self.modifier_placeholder, is_training=False)
+        tmp = ""
+        #original self.z_hats_recs = gan.generator_fn(self.z_init + modifier, is_training=False)
+
 
         # num_dim = len(self.z_hats_recs.get_shape())
         # #P2 version axes = range(1, num_dim) - fix: https://github.com/WojciechMormul/gan/issues/3
@@ -69,9 +76,13 @@ class Reconstructor(object):
         end_vars = tf.global_variables()
         new_vars = [x for x in end_vars if x.name not in start_vars]
         #
+
+        #TODO I don't think we need the assign and timg variables anymore
         self.assign_timg = tf.placeholder(tf.float32, x_shape, name='assign_timg')
         self.setup = tf.assign(timg, self.assign_timg)
-        self.init_opt = tf.variables_initializer(var_list=[modifier] + new_vars)
+
+        #original self.init_opt = tf.variables_initializer(var_list=[modifier] + new_vars)
+        self.init_opt = tf.variables_initializer(var_list=[] + new_vars)
 
         print('Reconstruction module initialzied...\n')
 
@@ -98,6 +109,32 @@ class Reconstructor(object):
         #unmodified_z is the equivalent of all_zs/online_zs in original code WITHOUT the modifier
 
         return tf.stop_gradient(unmodified_z)
+
+    def generate_image_batch(self, images, modifier_placeholder, z_init_input_placeholder, batch_size):
+        # images and batch_size are treated as numpy
+
+        self.sess.run(self.init_opt)
+        self.sess.run(self.setup, feed_dict={self.assign_timg: images,
+                                             self.modifier_placeholder: modifier_placeholder,
+                                             self.z_init_input_placeholder: z_init_input_placeholder})
+
+        for _ in range(self.rec_iters):
+            all_z_recs = self.sess.run([self.z_hats_recs])
+
+        return all_z_recs
+
+    def generate_image(self, images, modifier_placeholder, z_init_input_placeholder, batch_size=None, back_prop=False, reconstructor_id=0):
+        x_shape = images.get_shape().as_list()
+        x_shape[0] = batch_size
+
+        def recon_wrap(im, modifier_placeholder, z_init_input_placeholder, b):
+            z_recs = self.generate_image_batch(im, modifier_placeholder, z_init_input_placeholder, b)
+            return np.array(z_recs, dtype=np.float32)
+
+        all_z_recs = tf.py_func(recon_wrap, [images, modifier_placeholder, z_init_input_placeholder, batch_size], [tf.float32])
+        # all_z_recs.set_shape(x_shape)
+
+        return tf.stop_gradient(all_z_recs)
 
     def reconstruct_batch(self, images, batch_size):
         # images and batch_size are treated as numpy
