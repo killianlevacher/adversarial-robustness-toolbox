@@ -70,6 +70,8 @@ cfg = {'TYPE':'inv',
 # tf.set_random_seed(11241990)
 # np.random.seed(11241990)
 
+######## STEP 0 SETUP
+
 gan = gan_from_config(cfg, True)
 
 gan.load_model()
@@ -90,7 +92,7 @@ classes = 10
 # x_shape, classes = list(train_images.shape[1:]), train_labels.shape[1]
 nb_classes = classes
 
-######## Killian test
+######## STEP 1 IMAGE TO Z ENCODING
 images_tensor = tf.placeholder(tf.float32, shape=[None] + x_shape)
 labels_tensor = tf.placeholder(tf.float32, shape=(None, classes))
 
@@ -101,6 +103,7 @@ unmodified_z_tensor = reconstructor.generate_z(images_tensor, batch_size=cfg["BA
 
 # x_rec_orig, _ = reconstructor.reconstruct(images_tensor, batch_size=cfg["BATCH_SIZE"], reconstructor_id=3)
 # image_batch = train_images[:cfg["BATCH_SIZE"]]
+#TODO use ART Mnist
 with open("image_batch.pkl", 'rb') as f:
     image_batch = pickle.load(f)
 
@@ -110,12 +113,13 @@ unmodified_z_value = sess.run(unmodified_z_tensor, feed_dict={images_tensor: ima
 print("Encoded image into Z form")
 
 
+######## STEP 2 Z TO IMAGE GENERATION
 latent_dim=128
 z_init_input_placeholder = tf.placeholder(tf.float32, shape=[1,1,cfg["BATCH_SIZE"],latent_dim], name='z_init_input_placeholder1')
 modifier_placeholder = tf.placeholder(tf.float32, shape=[cfg["BATCH_SIZE"],latent_dim], name='z_modifier_placeholder1')
 
+#TODO remove deprecated image_tensor input
 image_tensor = reconstructor.generate_image(images_tensor, z_init_input_placeholder, modifier_placeholder,  batch_size=cfg["BATCH_SIZE"], reconstructor_id=3)
-
 
 
 random_modifier = np.random.rand(cfg["BATCH_SIZE"],latent_dim)

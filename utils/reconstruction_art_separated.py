@@ -75,7 +75,12 @@ class Reconstructor(object):
         # # Setup the adam optimizer and keep track of variables we're creating
         start_vars = set(x.name for x in tf.global_variables())
         # optimizer = tf.train.AdamOptimizer(rec_lr)
+
+        #TODO reproduce this through scipy.minimize
         # self.train_op = optimizer.minimize(rec_loss, var_list=[modifier])
+
+
+
         end_vars = tf.global_variables()
         new_vars = [x for x in end_vars if x.name not in start_vars]
         #
