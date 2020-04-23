@@ -115,7 +115,7 @@ class Reconstructor(object):
 
         return unmodified_z
 
-    def generate_z(self, images, batch_size=None, back_prop=False, reconstructor_id=0):
+    def generate_z(self, images, latent_dim, batch_size=None, back_prop=False, reconstructor_id=0):
         x_shape = images.get_shape().as_list()
         x_shape[0] = batch_size
 
@@ -125,7 +125,7 @@ class Reconstructor(object):
 
         unmodified_z = tf.py_func(recon_wrap, [images, batch_size], [tf.float32])
         # unmodified_z is the equivalent of all_zs/online_zs in original code WITHOUT the modifier
-        latent_dim = 128
+
         unmodified_z_reshaped = tf.reshape(unmodified_z, [batch_size, latent_dim])
         # return tf.stop_gradient(unmodified_z)
         return tf.stop_gradient(unmodified_z_reshaped)

@@ -85,6 +85,7 @@ def main():
 
        (x_train, y_train), (x_test, y_test) = (x_train_original[:n_train], y_train_original[:n_train]), (x_test_original[:n_test], y_test_original[:n_test])
 
+       latent_dim = 128
        ######## STEP 0 SETUP
 
        gan = gan_from_config(cfg, True)
@@ -114,7 +115,7 @@ def main():
        reconstructor = Reconstructor(gan)
        # reconstructor = get_reconstructor(gan)
 
-       unmodified_z_tensor = reconstructor.generate_z(images_tensor, batch_size=cfg["BATCH_SIZE"], reconstructor_id=3)
+       unmodified_z_tensor = reconstructor.generate_z(images_tensor, latent_dim, batch_size=cfg["BATCH_SIZE"], reconstructor_id=3)
 
        # x_rec_orig, _ = reconstructor.reconstruct(images_tensor, batch_size=cfg["BATCH_SIZE"], reconstructor_id=3)
        # image_batch = train_images[:cfg["BATCH_SIZE"]]
@@ -127,7 +128,7 @@ def main():
 
 
        ######## STEP 2 Z TO IMAGE GENERATION
-       latent_dim=128
+
        # z_init_input_placeholder = tf.placeholder(tf.float32, shape=[1,1,cfg["BATCH_SIZE"],latent_dim], name='z_init_input_placeholder1')
        z_init_input_placeholder = tf.placeholder(tf.float32, shape=[cfg["BATCH_SIZE"], latent_dim], name='z_init_input_placeholder1')
        modifier_placeholder = tf.placeholder(tf.float32, shape=[cfg["BATCH_SIZE"],latent_dim], name='z_modifier_placeholder1')
