@@ -9,9 +9,10 @@ import logging
 import os
 import re
 import sys
-
+import os
 import numpy as np
 import tensorflow as tf
+import matplotlib.pyplot as plt
 
 from art.utils import load_mnist
 
@@ -71,72 +72,78 @@ cfg = {'TYPE':'inv',
        }
 
 
-# tf.set_random_seed(11241990)
-# np.random.seed(11241990)
+def main():
 
-######## Loading Dataset
-(x_train_original, y_train_original), (x_test_original, y_test_original), min_pixel_value, max_pixel_value = load_mnist()
+       # tf.set_random_seed(11241990)
+       # np.random.seed(11241990)
 
-n_train = 50
-n_test = 50
+       ######## Loading Dataset
+       (x_train_original, y_train_original), (x_test_original, y_test_original), min_pixel_value, max_pixel_value = load_mnist()
 
-(x_train, y_train), (x_test, y_test) = (x_train_original[:n_train], y_train_original[:n_train]), (x_test_original[:n_test], y_test_original[:n_test])
+       n_train = 50
+       n_test = 50
 
-######## STEP 0 SETUP
+       (x_train, y_train), (x_test, y_test) = (x_train_original[:n_train], y_train_original[:n_train]), (x_test_original[:n_test], y_test_original[:n_test])
 
-gan = gan_from_config(cfg, True)
+       ######## STEP 0 SETUP
 
-gan.load_model()
+       gan = gan_from_config(cfg, True)
 
-gan_defense_flag = False
-config = tf.ConfigProto()
-config.gpu_options.allow_growth = True
-sess = tf.Session(config=config)
+       gan.load_model()
 
-FLAGS_num_train = -1
-test_on_dev = False
-# train_images, train_labels, test_images, test_labels = \
-#     get_cached_gan_data(gan, test_on_dev, FLAGS_num_train, orig_data_flag=True)
+       gan_defense_flag = False
+       config = tf.ConfigProto()
+       config.gpu_options.allow_growth = True
+       sess = tf.Session(config=config)
 
-
-x_shape = [28, 28, 1]
-classes = 10
-# x_shape, classes = list(train_images.shape[1:]), train_labels.shape[1]
-nb_classes = classes
-
-######## STEP 1 IMAGE TO Z ENCODING
-images_tensor = tf.placeholder(tf.float32, shape=[None] + x_shape)
-labels_tensor = tf.placeholder(tf.float32, shape=(None, classes))
-
-reconstructor = Reconstructor(gan)
-# reconstructor = get_reconstructor(gan)
-
-unmodified_z_tensor = reconstructor.generate_z(images_tensor, batch_size=cfg["BATCH_SIZE"], reconstructor_id=3)
-
-# x_rec_orig, _ = reconstructor.reconstruct(images_tensor, batch_size=cfg["BATCH_SIZE"], reconstructor_id=3)
-# image_batch = train_images[:cfg["BATCH_SIZE"]]
+       FLAGS_num_train = -1
+       test_on_dev = False
+       # train_images, train_labels, test_images, test_labels = \
+       #     get_cached_gan_data(gan, test_on_dev, FLAGS_num_train, orig_data_flag=True)
 
 
-unmodified_z_value = sess.run(unmodified_z_tensor, feed_dict={images_tensor: x_train})
-# x_rec_orig_val = sess.run(x_rec_orig, feed_dict={images_tensor: image_batch})
-# save_images_files(x_rec_orig_val, output_dir="debug/blackbox/tempKillian", postfix='orig_rec')
-print("Encoded image into Z form")
+       x_shape = [28, 28, 1]
+       classes = 10
+       # x_shape, classes = list(train_images.shape[1:]), train_labels.shape[1]
+       nb_classes = classes
+
+       ######## STEP 1 IMAGE TO Z ENCODING
+       images_tensor = tf.placeholder(tf.float32, shape=[None] + x_shape)
+       labels_tensor = tf.placeholder(tf.float32, shape=(None, classes))
+
+       reconstructor = Reconstructor(gan)
+       # reconstructor = get_reconstructor(gan)
+
+       unmodified_z_tensor = reconstructor.generate_z(images_tensor, batch_size=cfg["BATCH_SIZE"], reconstructor_id=3)
+
+       # x_rec_orig, _ = reconstructor.reconstruct(images_tensor, batch_size=cfg["BATCH_SIZE"], reconstructor_id=3)
+       # image_batch = train_images[:cfg["BATCH_SIZE"]]
 
 
-######## STEP 2 Z TO IMAGE GENERATION
-latent_dim=128
-z_init_input_placeholder = tf.placeholder(tf.float32, shape=[1,1,cfg["BATCH_SIZE"],latent_dim], name='z_init_input_placeholder1')
-modifier_placeholder = tf.placeholder(tf.float32, shape=[cfg["BATCH_SIZE"],latent_dim], name='z_modifier_placeholder1')
-
-#TODO remove deprecated image_tensor input
-image_tensor = reconstructor.generate_image(z_init_input_placeholder, modifier_placeholder,  batch_size=cfg["BATCH_SIZE"], reconstructor_id=3)
+       unmodified_z_value = sess.run(unmodified_z_tensor, feed_dict={images_tensor: x_train})
+       # x_rec_orig_val = sess.run(x_rec_orig, feed_dict={images_tensor: image_batch})
+       # save_images_files(x_rec_orig_val, output_dir="debug/blackbox/tempKillian", postfix='orig_rec')
+       print("Encoded image into Z form")
 
 
-random_modifier = np.random.rand(cfg["BATCH_SIZE"],latent_dim)
+       ######## STEP 2 Z TO IMAGE GENERATION
+       latent_dim=128
+       z_init_input_placeholder = tf.placeholder(tf.float32, shape=[1,1,cfg["BATCH_SIZE"],latent_dim], name='z_init_input_placeholder1')
+       modifier_placeholder = tf.placeholder(tf.float32, shape=[cfg["BATCH_SIZE"],latent_dim], name='z_modifier_placeholder1')
 
-image_value = sess.run(image_tensor, feed_dict={z_init_input_placeholder: unmodified_z_value,
-                                                modifier_placeholder: random_modifier})
+       #TODO remove deprecated image_tensor input
+       image_tensor = reconstructor.generate_image(z_init_input_placeholder, modifier_placeholder,  batch_size=cfg["BATCH_SIZE"], reconstructor_id=3)
 
-print("Generated Image")
-######## Killian test
 
+       random_modifier = np.random.rand(cfg["BATCH_SIZE"],latent_dim)
+
+       image_value = sess.run(image_tensor, feed_dict={z_init_input_placeholder: unmodified_z_value,
+                                                       modifier_placeholder: random_modifier})
+
+       # TODO saving image
+
+       print("Generated Image")
+       ######## Killian test
+
+if __name__ == "__main__":
+    main()
