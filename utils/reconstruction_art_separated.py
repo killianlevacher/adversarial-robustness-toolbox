@@ -43,8 +43,10 @@ class Reconstructor(object):
 
         modifier_killian = tf.Variable(np.zeros([batch_size,latent_dim]), dtype=tf.float32, name='modifier_killian')
 
-        z_init = tf.Variable(np.zeros([1, 1, batch_size, latent_dim]), dtype=tf.float32, name='z_init')
-        z_init_reshaped = tf.reshape(z_init, [batch_size, latent_dim])
+        # z_init = tf.Variable(np.zeros([1, 1, batch_size, latent_dim]), dtype=tf.float32, name='z_init')
+        # z_init_reshaped = tf.reshape(z_init, [batch_size, latent_dim])
+        z_init = tf.Variable(np.zeros([batch_size, latent_dim]), dtype=tf.float32, name='z_init')
+        z_init_reshaped = z_init
 
         # Define optimization #Killian this is where the delta applied to z_init is created
         # modifier = tf.Variable(np.zeros((batch_size * rec_rr, latent_dim)), dtype=tf.float32, name='z_modifier')
@@ -87,7 +89,7 @@ class Reconstructor(object):
 
         #TODO I don't think we need the assign and timg variables anymore
         self.assign_timg = tf.placeholder(tf.float32, x_shape, name='assign_timg')
-        self.z_init_input_placeholder = tf.placeholder(tf.float32, shape=[1, 1, batch_size, latent_dim],
+        self.z_init_input_placeholder = tf.placeholder(tf.float32, shape=[batch_size, latent_dim],
                                                        name='z_init_input_placeholder')
         self.modifier_placeholder = tf.placeholder(tf.float32, shape=[batch_size, latent_dim],
                                                    name='z_modifier_placeholder')
@@ -123,8 +125,10 @@ class Reconstructor(object):
 
         unmodified_z = tf.py_func(recon_wrap, [images, batch_size], [tf.float32])
         # unmodified_z is the equivalent of all_zs/online_zs in original code WITHOUT the modifier
-
-        return tf.stop_gradient(unmodified_z)
+        latent_dim = 128
+        unmodified_z_reshaped = tf.reshape(unmodified_z, [batch_size, latent_dim])
+        # return tf.stop_gradient(unmodified_z)
+        return tf.stop_gradient(unmodified_z_reshaped)
 
     def generate_image_batch(self, z_init_numpy, modifier_numpy, batch_size):
         # images and batch_size are treated as numpy

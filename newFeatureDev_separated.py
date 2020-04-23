@@ -128,7 +128,8 @@ def main():
 
        ######## STEP 2 Z TO IMAGE GENERATION
        latent_dim=128
-       z_init_input_placeholder = tf.placeholder(tf.float32, shape=[1,1,cfg["BATCH_SIZE"],latent_dim], name='z_init_input_placeholder1')
+       # z_init_input_placeholder = tf.placeholder(tf.float32, shape=[1,1,cfg["BATCH_SIZE"],latent_dim], name='z_init_input_placeholder1')
+       z_init_input_placeholder = tf.placeholder(tf.float32, shape=[cfg["BATCH_SIZE"], latent_dim], name='z_init_input_placeholder1')
        modifier_placeholder = tf.placeholder(tf.float32, shape=[cfg["BATCH_SIZE"],latent_dim], name='z_modifier_placeholder1')
 
        #TODO remove deprecated image_tensor input
