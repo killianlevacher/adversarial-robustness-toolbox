@@ -13,9 +13,13 @@ import sys
 import numpy as np
 import tensorflow as tf
 
+from art.utils import load_mnist
+
 from blackbox_art import get_cached_gan_data, get_reconstructor
 from models_art.gan_v2_art import InvertorDefenseGAN, gan_from_config
 from utils.reconstruction_art_separated import Reconstructor
+
+
 
 cfg = {'TYPE':'inv',
        'MODE':'hingegan',
@@ -70,6 +74,14 @@ cfg = {'TYPE':'inv',
 # tf.set_random_seed(11241990)
 # np.random.seed(11241990)
 
+######## Loading Dataset
+(x_train_original, y_train_original), (x_test_original, y_test_original), min_pixel_value, max_pixel_value = load_mnist()
+
+n_train = 50
+n_test = 50
+
+(x_train, y_train), (x_test, y_test) = (x_train_original[:n_train], y_train_original[:n_train]), (x_test_original[:n_test], y_test_original[:n_test])
+
 ######## STEP 0 SETUP
 
 gan = gan_from_config(cfg, True)
@@ -103,11 +115,9 @@ unmodified_z_tensor = reconstructor.generate_z(images_tensor, batch_size=cfg["BA
 
 # x_rec_orig, _ = reconstructor.reconstruct(images_tensor, batch_size=cfg["BATCH_SIZE"], reconstructor_id=3)
 # image_batch = train_images[:cfg["BATCH_SIZE"]]
-#TODO use ART Mnist
-with open("image_batch.pkl", 'rb') as f:
-    image_batch = pickle.load(f)
 
-unmodified_z_value = sess.run(unmodified_z_tensor, feed_dict={images_tensor: image_batch})
+
+unmodified_z_value = sess.run(unmodified_z_tensor, feed_dict={images_tensor: x_train})
 # x_rec_orig_val = sess.run(x_rec_orig, feed_dict={images_tensor: image_batch})
 # save_images_files(x_rec_orig_val, output_dir="debug/blackbox/tempKillian", postfix='orig_rec')
 print("Encoded image into Z form")
@@ -124,10 +134,10 @@ image_tensor = reconstructor.generate_image(images_tensor, z_init_input_placehol
 
 random_modifier = np.random.rand(cfg["BATCH_SIZE"],latent_dim)
 
-image_value = sess.run(image_tensor, feed_dict={images_tensor: image_batch,
+image_value = sess.run(image_tensor, feed_dict={images_tensor: x_train,
                                                 z_init_input_placeholder: unmodified_z_value,
                                                 modifier_placeholder: random_modifier})
 
-print("Finished")
+print("Generated Image")
 ######## Killian test
 
