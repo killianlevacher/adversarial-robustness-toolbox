@@ -84,6 +84,8 @@ def main():
        (x_train, y_train), (x_test, y_test) = (x_train_original[:n_train], y_train_original[:n_train]), (x_test_original[:n_test], y_test_original[:n_test])
 
 
+       #TODO separate defenceGan Classes that I won't change from the rest
+       # Deintangle as much as possible encoder and decoder code
        ######## STEP 1 IMAGE TO Z ENCODING
 
 
@@ -92,7 +94,6 @@ def main():
        encoder_reconstructor = EncoderReconstructor(cfg)
 
        unmodified_z_value = encoder_reconstructor.generate_z_killian(x_train)
-
 
        print("Encoded image into Z form")
 
