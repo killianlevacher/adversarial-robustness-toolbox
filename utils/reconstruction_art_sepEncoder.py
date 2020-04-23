@@ -9,13 +9,19 @@ import tflib
 from models_art.gan_v2_art import InvertorDefenseGAN
 from utils.util_art import ensure_dir
 from utils.util_art import save_images_files
-
+from models_art.gan_v2_art import InvertorDefenseGAN, gan_from_config
 
 class EncoderReconstructor(object):
-    def __init__(self, gan):
+    def __init__(self, cfg):
+
+        gan = gan_from_config(cfg, True)
+
+        gan.load_model()
+        self.batch_size = cfg["BATCH_SIZE"]
+
         batch_size = gan.batch_size
         image_dim = gan.image_dim
-        latent_dim = gan.latent_dim
+        self.latent_dim = gan.latent_dim
         rec_lr = gan.rec_lr
         rec_rr = gan.rec_rr # # Number of random restarts for the reconstruction
 
@@ -35,17 +41,17 @@ class EncoderReconstructor(object):
             self.z_init = gan.encoder_fn(timg_tiled_rr, is_training=False)[0]
         else:
             # DefenseGAN
-            self.z_init = tf.Variable(np.random.normal(size=(batch_size * rec_rr, latent_dim)),
+            self.z_init = tf.Variable(np.random.normal(size=(batch_size * rec_rr, self.latent_dim)),
                                  collections=[tf.GraphKeys.LOCAL_VARIABLES],
                                  trainable=False,
                                  dtype=tf.float32,
                                  name='z_init_rec')
 
-        modifier_killian = tf.Variable(np.zeros([batch_size,latent_dim]), dtype=tf.float32, name='modifier_killian')
+        modifier_killian = tf.Variable(np.zeros([batch_size, self.latent_dim]), dtype=tf.float32, name='modifier_killian')
 
         # z_init = tf.Variable(np.zeros([1, 1, batch_size, latent_dim]), dtype=tf.float32, name='z_init')
         # z_init_reshaped = tf.reshape(z_init, [batch_size, latent_dim])
-        z_init = tf.Variable(np.zeros([batch_size, latent_dim]), dtype=tf.float32, name='z_init')
+        z_init = tf.Variable(np.zeros([batch_size, self.latent_dim]), dtype=tf.float32, name='z_init')
         z_init_reshaped = z_init
 
         # Define optimization #Killian this is where the delta applied to z_init is created
@@ -89,9 +95,9 @@ class EncoderReconstructor(object):
 
         #TODO I don't think we need the assign and timg variables anymore
         self.assign_timg = tf.placeholder(tf.float32, x_shape, name='assign_timg')
-        self.z_init_input_placeholder = tf.placeholder(tf.float32, shape=[batch_size, latent_dim],
+        self.z_init_input_placeholder = tf.placeholder(tf.float32, shape=[batch_size, self.latent_dim],
                                                        name='z_init_input_placeholder')
-        self.modifier_placeholder = tf.placeholder(tf.float32, shape=[batch_size, latent_dim],
+        self.modifier_placeholder = tf.placeholder(tf.float32, shape=[batch_size, self.latent_dim],
                                                    name='z_modifier_placeholder')
 
         self.setup = tf.assign(timg, self.assign_timg)
@@ -114,6 +120,24 @@ class EncoderReconstructor(object):
             unmodified_z = self.sess.run([self.z_init])
 
         return unmodified_z
+
+    def generate_z_killian(self, x_train):
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
+        sess = tf.Session(config=config)
+
+        x_shape = [28, 28, 1]
+        classes = 10
+        # x_shape, classes = list(train_images.shape[1:]), train_labels.shape[1]
+
+        images_tensor = tf.placeholder(tf.float32, shape=[None] + x_shape)
+        labels_tensor = tf.placeholder(tf.float32, shape=(None, classes))
+
+        unmodified_z_tensor = self.generate_z(images_tensor, self.latent_dim, batch_size=self.batch_size, reconstructor_id=3)
+
+        unmodified_z_value = sess.run(unmodified_z_tensor, feed_dict={images_tensor: x_train})
+
+        return unmodified_z_value
 
     def generate_z(self, images, latent_dim, batch_size=None, back_prop=False, reconstructor_id=0):
         x_shape = images.get_shape().as_list()
