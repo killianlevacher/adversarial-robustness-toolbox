@@ -129,13 +129,12 @@ z_init_input_placeholder = tf.placeholder(tf.float32, shape=[1,1,cfg["BATCH_SIZE
 modifier_placeholder = tf.placeholder(tf.float32, shape=[cfg["BATCH_SIZE"],latent_dim], name='z_modifier_placeholder1')
 
 #TODO remove deprecated image_tensor input
-image_tensor = reconstructor.generate_image(images_tensor, z_init_input_placeholder, modifier_placeholder,  batch_size=cfg["BATCH_SIZE"], reconstructor_id=3)
+image_tensor = reconstructor.generate_image(z_init_input_placeholder, modifier_placeholder,  batch_size=cfg["BATCH_SIZE"], reconstructor_id=3)
 
 
 random_modifier = np.random.rand(cfg["BATCH_SIZE"],latent_dim)
 
-image_value = sess.run(image_tensor, feed_dict={images_tensor: x_train,
-                                                z_init_input_placeholder: unmodified_z_value,
+image_value = sess.run(image_tensor, feed_dict={z_init_input_placeholder: unmodified_z_value,
                                                 modifier_placeholder: random_modifier})
 
 print("Generated Image")

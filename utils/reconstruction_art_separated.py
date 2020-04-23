@@ -126,14 +126,14 @@ class Reconstructor(object):
 
         return tf.stop_gradient(unmodified_z)
 
-    def generate_image_batch(self, images, z_init_numpy, modifier_numpy, batch_size):
+    def generate_image_batch(self, z_init_numpy, modifier_numpy, batch_size):
         # images and batch_size are treated as numpy
 
         self.sess.run(self.init_opt)
         # self.sess.run(self.setup, self.setup_z_init, self.setup_modifier_killian, feed_dict={self.assign_timg: images,
         #                                                                                      self.z_init_input_placeholder: z_init_numpy,
         #                                                                                      self.modifier_placeholder: modifier_numpy})
-        self.sess.run(self.setup, feed_dict={self.assign_timg: images})
+
         self.sess.run(self.setup_z_init, feed_dict={self.z_init_input_placeholder: z_init_numpy,
                                                     self.modifier_placeholder: modifier_numpy})
         self.sess.run(self.setup_modifier_killian, feed_dict={self.modifier_placeholder: modifier_numpy})
@@ -143,16 +143,13 @@ class Reconstructor(object):
 
         return all_z_recs
 
-    def generate_image(self, images,  z_init_numpy, modifier_numpy, batch_size=None, back_prop=False, reconstructor_id=0):
-        x_shape = images.get_shape().as_list()
-        x_shape[0] = batch_size
+    def generate_image(self, z_init_numpy, modifier_numpy, batch_size=None, back_prop=False, reconstructor_id=0):
 
-        def recon_wrap(im,  z_init_numpy, modifier_numpy, b):
-            z_recs = self.generate_image_batch(im, z_init_numpy, modifier_numpy, b)
+        def recon_wrap(z_init_numpy, modifier_numpy, b):
+            z_recs = self.generate_image_batch(z_init_numpy, modifier_numpy, b)
             return np.array(z_recs, dtype=np.float32)
 
-        all_z_recs = tf.py_func(recon_wrap, [images, z_init_numpy, modifier_numpy, batch_size], [tf.float32])
-        # all_z_recs.set_shape(x_shape)
+        all_z_recs = tf.py_func(recon_wrap, [z_init_numpy, modifier_numpy, batch_size], [tf.float32])
 
         return tf.stop_gradient(all_z_recs)
 
