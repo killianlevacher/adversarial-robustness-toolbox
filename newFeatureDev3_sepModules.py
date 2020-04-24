@@ -102,7 +102,7 @@ def main():
     ######## STEP 5A Defence image to z encoding
 
     # TODO separate defenceGan Classes that I won't change from the rest
-    # Deintangle as much as possible encoder and decoder code
+    # Deintangle as much as possible encoding and decoder code
     # TODO incorporate cfg in reconstructors
 
     encoder_reconstructor = EncoderReconstructor(batch_size)

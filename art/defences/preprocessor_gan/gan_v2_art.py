@@ -100,7 +100,7 @@ class DefenseGANv2(AbstractModel):
         self.image_dim = [None, None,
                           None]  # [height, width, number of channels] of the output image.
         self.rec_rr = 10  # Number of random restarts for the reconstruction
-        self.encoder_loss_type = 'margin'  # Loss used for encoder
+        self.encoder_loss_type = 'margin'  # Loss used for encoding
 
         self.rec_lr = 10.0  # The reconstruction learning rate.
         self.test_again = False  # If true, do not use the cached info for test phase.
@@ -147,7 +147,7 @@ class DefenseGANv2(AbstractModel):
         self.save_var_prefixes = ['Encoder', 'Discriminator']
         self._load_dataset()
 
-        # create a method that only loads generator and encoder
+        # create a method that only loads generator and encoding
         g_saver = tf.train.Saver(var_list=self.generator_vars)
         self.load_generator = lambda ckpt_path=None: self.load(
             checkpoint_dir=ckpt_path, saver=g_saver)
@@ -371,7 +371,7 @@ class DefenseGANv2(AbstractModel):
                 )
 
             tflib.plot.plot(
-                '{}/train encoder cost'.format(self.debug_dir), loss,
+                '{}/train encoding cost'.format(self.debug_dir), loss,
             )
             tflib.plot.plot(
                 '{}/time'.format(self.debug_dir), time.time() - start_time,
@@ -562,11 +562,11 @@ class DefenseGANv2(AbstractModel):
             ckpt_path=self.generator_init_path)
 
         if self.encoder_init_path == 'none':
-            print('[*] Loading default encoder')
+            print('[*] Loading default encoding')
             could_load_encoder = self.load_encoder(ckpt_path=self.checkpoint_dir)
 
         else:
-            print('[*] Loading encoder from {}'.format(self.encoder_init_path))
+            print('[*] Loading encoding from {}'.format(self.encoder_init_path))
             could_load_encoder = self.load_encoder(ckpt_path=self.encoder_init_path)
         assert could_load_generator and could_load_encoder
         self.initialized = True
@@ -605,12 +605,12 @@ class InvertorDefenseGAN(DefenseGANv2):
             'generator_samples', self.generator_samples, max_outputs=10,
         )
 
-        # Pass the generated samples through the encoder
+        # Pass the generated samples through the encoding
         self.generator_samples_latents = self.encoder_fn(
             self.generator_samples, is_training=self.encoder_training,
         )[0]
 
-        # Cycle the generated images through the encoder
+        # Cycle the generated images through the encoding
         self.cycled_back_generator = self.generator_fn(
             self.generator_samples_latents, is_training=False,
         )

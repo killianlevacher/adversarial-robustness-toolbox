@@ -89,7 +89,7 @@ class DefenseCGAN(AbstractModel):
         self.save_var_prefixes = ['Generator', 'Discriminator']
         self._load_dataset()
 
-        # create a method that only loads generator and encoder
+        # create a method that only loads generator and encoding
         g_saver = tf.train.Saver(var_list=self.generator_vars)
         self.load_generator = lambda ckpt_path=None: self.load(checkpoint_dir=ckpt_path, saver=g_saver)
 

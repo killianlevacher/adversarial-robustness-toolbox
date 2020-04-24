@@ -272,7 +272,7 @@ def evaluate_encoder(gan_model, output_name='all'):
 
 def encoder_reconstruct(gan_model):
     """ 
-    Module for testing the quality of the encoder.
+    Module for testing the quality of the encoding.
     Computed and returns the average MSE of the training data
     """
     if not gan_model.initialized:

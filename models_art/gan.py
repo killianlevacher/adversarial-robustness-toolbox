@@ -70,8 +70,8 @@ class DefenseGANBase(AbstractModel):
         self.rec_iters = 200  # Number of reconstruction iterations.
         self.image_dim = [None, None, None]  # [height, width, number of channels] of the output image.
         self.rec_rr = 10  # Number of random restarts for the reconstruction
-        self.encoder_loss_type = 'margin' # Loss used for encoder
-        self.use_encoder_init = True # Flag for using encoder initialization while reconstructing
+        self.encoder_loss_type = 'margin' # Loss used for encoding
+        self.use_encoder_init = True # Flag for using encoding initialization while reconstructing
 
         self.rec_lr = 10.0  # The reconstruction learning rate.
         self.test_again = False  # If true, do not use the cached info for test phase.
@@ -98,7 +98,7 @@ class DefenseGANBase(AbstractModel):
         self.save_var_prefixes = ['Generator', 'Discriminator']
         self._load_dataset()
 
-        # create a method that only loads generator and encoder
+        # create a method that only loads generator and encoding
         g_saver = tf.train.Saver(var_list=self.generator_vars)
         self.load_generator = lambda ckpt_path=None: self.load(checkpoint_dir=ckpt_path, saver=g_saver)
 
@@ -280,7 +280,7 @@ class DefenseGANBase(AbstractModel):
         gen = self._inf_train_gen()
 
         # (1) load generator
-        # (2) self.saver will be initialized to save generator and encoder
+        # (2) self.saver will be initialized to save generator and encoding
         # potential bug if self.saver is already initialized. e.g. train() is called before train_encoder()
         if gan_init_path is None:
             gan_init_path = self.checkpoint_dir
@@ -314,7 +314,7 @@ class DefenseGANBase(AbstractModel):
             loss, _ = sess.run([self.encoder_cost, self.encoder_train_op],
                                feed_dict={self.real_data_pl: _data, self.is_training_enc: True, self.is_training: True})
 
-            tflib.plot.plot('{}/train encoder cost'.format(self.debug_dir), loss)
+            tflib.plot.plot('{}/train encoding cost'.format(self.debug_dir), loss)
             tflib.plot.plot('{}/time'.format(self.debug_dir), time.time() - start_time)
 
             if (iteration < 5) or (iteration % 100 == 99):

@@ -119,7 +119,7 @@ def mnist_discriminator(x, update_collection=None, is_training=False):
         x = linear(x, 1, sn=use_sn, update_collection=update_collection, name='linear')
         return tf.reshape(x, [-1])
 
-#TODO this is the InverseGAN encoder
+#TODO this is the InverseGAN encoding
 def mnist_encoder(x, is_training=False, use_bn=False, net_dim=64, latent_dim=128):
     with tf.variable_scope('Encoder', reuse=tf.AUTO_REUSE):
         x = conv2d(x, net_dim, 5, 2, name='conv0')
