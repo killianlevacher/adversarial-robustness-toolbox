@@ -32,7 +32,7 @@ from art.estimators.encoding.encoder import EncoderMixin
 logger = logging.getLogger(__name__)
 
 #TODO change ClassifierMixin to EncoderMixin
-class TensorflowEncoder(EncoderMixin, TensorFlowEstimator):  # lgtm [py/missing-call-to-init]
+class Tensorflow1Encoder(EncoderMixin, TensorFlowEstimator):  # lgtm [py/missing-call-to-init]
     """
     This class implements an encoding with the TensorFlow framework.
     """

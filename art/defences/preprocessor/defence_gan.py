@@ -48,21 +48,14 @@ class DefenceGan(Preprocessor):
         """
         Create an instance of DefenceGAN.
 
-        :param clip_values: Tuple of the form `(min, max)` representing the minimum and maximum values allowed
-               for features.
-        :type clip_values: `tuple`
-        :param bit_depth: The number of bits per channel for encoding the data.
-        :type bit_depth: `int`
-        :param apply_fit: True if applied during fitting/training.
-        :type apply_fit: `bool`
-        :param apply_predict: True if applied during predicting.
-        :type apply_predict: `bool`
         """
         super(DefenceGan, self).__init__()
 
         assert isinstance(encoder, EncoderMixin)
         assert isinstance(generator, GeneratorMixin)
 
+        self.encoder = encoder
+        self.generator = generator
         # self._is_fitted = True
         # self._apply_fit = apply_fit
         # self._apply_predict = apply_predict
@@ -87,16 +80,27 @@ class DefenceGan(Preprocessor):
         :return: Squeezed sample.
         :rtype: `np.ndarray`
         """
-        x_normalized = x - self.clip_values[0]
-        x_normalized = x_normalized / (self.clip_values[1] - self.clip_values[0])
 
-        max_value = np.rint(2 ** self.bit_depth - 1)
-        res = np.rint(x_normalized * max_value) / max_value
+        unmodified_z_value = self.encoder.generate_z_killian(x)
 
-        res = res * (self.clip_values[1] - self.clip_values[0])
-        res = res + self.clip_values[0]
+        logger.info("Encoded x into Z encoding")
 
-        return res, y
+        # generator_reconstructor = GeneratorReconstructor(batch_size)
+
+        x_defended = self.generate_image_killian(unmodified_z_value)
+
+        logger.info("Generated defended x from Z encoding")
+        return x_defended
+        # x_normalized = x - self.clip_values[0]
+        # x_normalized = x_normalized / (self.clip_values[1] - self.clip_values[0])
+        #
+        # max_value = np.rint(2 ** self.bit_depth - 1)
+        # res = np.rint(x_normalized * max_value) / max_value
+        #
+        # res = res * (self.clip_values[1] - self.clip_values[0])
+        # res = res + self.clip_values[0]
+        #
+        # return res, y
 
     def estimate_gradient(self, x, grad):
         return grad

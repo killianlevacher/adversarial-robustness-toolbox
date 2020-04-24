@@ -16,6 +16,10 @@ import matplotlib.pyplot as plt
 
 from art.utils import load_mnist
 from art.attacks.evasion import FastGradientMethod
+from art.defences.preprocessor.defence_gan import DefenceGan
+from art.estimators.encoding.tensorflow1 import Tensorflow1Encoder
+from art.estimators.generation.tensorflow1 import Tensorflow1Generator
+
 from art.utils import random_targets
 from art.classifiers import TFClassifier
 from tests.utils import master_seed
@@ -34,6 +38,7 @@ logger.setLevel(logging.INFO)
 
 
 master_seed(1234)
+
 
 
 def create_ts1_art_model(min_pixel_value, max_pixel_value):
@@ -69,6 +74,41 @@ def create_ts1_art_model(min_pixel_value, max_pixel_value):
     return classifier
 
 
+def create_ts1_encoder_model(batch_size):
+    encoder_reconstructor = EncoderReconstructor(batch_size)
+
+    encoder = Tensorflow1Encoder(
+        clip_values=(min_pixel_value, max_pixel_value),
+        input_ph=input_ph,
+        output=logits,
+        labels_ph=labels_ph,
+        train=train,
+        loss=loss,
+        learning=None,
+        sess=encoder_reconstructor.sess,
+        preprocessing_defences=[]
+    )
+
+    return encoder
+
+
+def create_ts1_generator_model(batch_size):
+    generator_reconstructor = GeneratorReconstructor(batch_size)
+
+    generator = Tensorflow1Generator(
+        clip_values=(min_pixel_value, max_pixel_value),
+        input_ph=input_ph,
+        output=logits,
+        labels_ph=labels_ph,
+        train=train,
+        loss=loss,
+        learning=None,
+        sess=generator_reconstructor.sess,
+        preprocessing_defences=[]
+    )
+
+    return generator
+
 def main():
     ######## STEP 0 Loading Dataset
     (x_train_original, y_train_original), (
@@ -99,21 +139,35 @@ def main():
     accuracy_adv = np.sum(np.argmax(predictions, axis=1) == np.argmax(y_train, axis=1)) / len(y_train)
     logger.info("Accuracy on adversarial examples: {}%".format(accuracy_adv * 100))
 
+
+
     ######## STEP 5A Defence image to z encoding
 
     # TODO separate defenceGan Classes that I won't change from the rest
     # Deintangle as much as possible encoding and decoder code
     # TODO incorporate cfg in reconstructors
 
-    encoder_reconstructor = EncoderReconstructor(batch_size)
+
+    encoder = create_ts1_encoder_model(batch_size)
+    generator = create_ts1_generator_model(batch_size)
+
+    defenceGan = DefenceGan(encoder, generator)
+
+    x_train_defended = defenceGan(x_train_adv)
+
+    # encoder_reconstructor = EncoderReconstructor(batch_size)
+
+    ######## STEP 5B - Defence - z to image generation
+
+
+    #TODO convert reconstructor classes in ART encoder and decoder classes 
 
     unmodified_z_value = encoder_reconstructor.generate_z_killian(x_train_adv)
 
     logger.info("Encoded image into Z form")
 
-    ######## STEP 5B - Defence - z to image generation
 
-    generator_reconstructor = GeneratorReconstructor(batch_size)
+    # generator_reconstructor = GeneratorReconstructor(batch_size)
 
     x_train_defended = generator_reconstructor.generate_image_killian(unmodified_z_value)
     # TODO saving image

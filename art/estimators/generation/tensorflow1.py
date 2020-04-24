@@ -32,7 +32,7 @@ from art.estimators.generation.generator import GeneratorMixin
 logger = logging.getLogger(__name__)
 
 #TODO change ClassifierMixin to EncoderMixin
-class TensorflowGenerator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/missing-call-to-init]
+class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/missing-call-to-init]
     """
     This class implements an encoding with the TensorFlow framework.
     """
