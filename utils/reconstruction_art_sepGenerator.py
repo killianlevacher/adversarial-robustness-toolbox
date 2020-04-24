@@ -183,7 +183,9 @@ class GeneratorReconstructor(object):
 
         all_z_recs = tf.py_func(recon_wrap, [z_init_numpy, modifier_numpy, batch_size], [tf.float32])
 
-        return tf.stop_gradient(all_z_recs)
+        # all_z_recs_reshaped = all_z_recs.getshape()[2:]
+        all_z_recs_reshaped =  tf.reshape(all_z_recs, [batch_size, 28,28,1])
+        return tf.stop_gradient(all_z_recs_reshaped)
 
     def reconstruct_batch(self, images, batch_size):
         # images and batch_size are treated as numpy

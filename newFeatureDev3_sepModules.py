@@ -15,6 +15,9 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 
 from art.utils import load_mnist
+from art.attacks.evasion import FastGradientMethod
+from art.utils import random_targets
+from art.classifiers import TFClassifier
 
 from blackbox_art import get_cached_gan_data, get_reconstructor
 from models_art.gan_v2_art import InvertorDefenseGAN, gan_from_config
@@ -72,40 +75,100 @@ cfg = {'TYPE':'inv',
        'cfg_path':'experiments/cfgs/gans_inv_notrain/mnist.yml'
        }
 
+def create_ts1_art_model(min_pixel_value, max_pixel_value):
+    input_ph = tf.placeholder(tf.float32, shape=[None, 28, 28, 1])
+    labels_ph = tf.placeholder(tf.int32, shape=[None, 10])
+
+    x = tf.layers.conv2d(input_ph, filters=4, kernel_size=5, activation=tf.nn.relu)
+    x = tf.layers.max_pooling2d(x, 2, 2)
+    x = tf.layers.conv2d(x, filters=10, kernel_size=5, activation=tf.nn.relu)
+    x = tf.layers.max_pooling2d(x, 2, 2)
+    x = tf.contrib.layers.flatten(x)
+    x = tf.layers.dense(x, 100, activation=tf.nn.relu)
+    logits = tf.layers.dense(x, 10)
+
+    loss = tf.reduce_mean(tf.losses.softmax_cross_entropy(logits=logits, onehot_labels=labels_ph))
+    optimizer = tf.train.AdamOptimizer(learning_rate=0.01)
+    train = optimizer.minimize(loss)
+    sess = tf.Session()
+    sess.run(tf.global_variables_initializer())
+
+    classifier = TFClassifier(
+        clip_values=(min_pixel_value, max_pixel_value),
+        input_ph=input_ph,
+        output=logits,
+        labels_ph=labels_ph,
+        train=train,
+        loss=loss,
+        learning=None,
+        sess=sess,
+        preprocessing_defences=[]
+    )
+
+
+    return classifier
 
 def main():
 
        ######## STEP 0 Loading Dataset
        (x_train_original, y_train_original), (x_test_original, y_test_original), min_pixel_value, max_pixel_value = load_mnist()
 
-       n_train = 50
-       n_test = 50
-
-       (x_train, y_train), (x_test, y_test) = (x_train_original[:n_train], y_train_original[:n_train]), (x_test_original[:n_test], y_test_original[:n_test])
+       #TODO  test changing the batch size
+       batch_size = 50
 
 
-       #TODO separate defenceGan Classes that I won't change from the rest
+       (x_train, y_train) = (x_train_original[:batch_size], y_train_original[:batch_size])
+
+       ######## STEP 1 - Creating a TS1 model
+       classifier = create_ts1_art_model(min_pixel_value, max_pixel_value)
+       classifier.fit(x_train, y_train, batch_size=batch_size, nb_epochs=3)
+
+
+       ######## STEP 2 - Evaluate the ART classifier on non adversarial examples
+
+       predictions = classifier.predict(x_train)
+       accuracy_non_adv = np.sum(np.argmax(predictions, axis=1) == np.argmax(y_train, axis=1)) / len(y_train)
+       print("Accuracy on non adversarial examples: {}%".format(accuracy_non_adv * 100))
+
+       ######## STEP 3 - Generate adversarial examples
+       attack = FastGradientMethod(classifier, eps=0.2)
+       x_train_adv = attack.generate(x=x_train)
+
+       ######## STEP 4 - Evaluate the classifier on the adversarial examples
+
+       predictions = classifier.predict(x_train_adv)
+       accuracy_adv = np.sum(np.argmax(predictions, axis=1) == np.argmax(y_train, axis=1)) / len(y_train)
+       print("Accuracy on adversarial examples: {}%".format(accuracy_adv * 100))
+
+       ######## STEP 5A Defence image to z encoding
+
+       # TODO separate defenceGan Classes that I won't change from the rest
        # Deintangle as much as possible encoder and decoder code
-       ######## STEP 1 IMAGE TO Z ENCODING
-
-
        #TODO incorporate cfg in reconstructors
 
        encoder_reconstructor = EncoderReconstructor(cfg)
 
-       unmodified_z_value = encoder_reconstructor.generate_z_killian(x_train)
+       unmodified_z_value = encoder_reconstructor.generate_z_killian(x_train_adv)
 
        print("Encoded image into Z form")
 
 
-       ######## STEP 2 Z TO IMAGE GENERATION
+       ######## STEP 5B - Defence - z to image generation
 
        generator_reconstructor = GeneratorReconstructor(cfg)
 
-       image_value = generator_reconstructor.generate_image_killian(unmodified_z_value)
+       x_train_defended = generator_reconstructor.generate_image_killian(unmodified_z_value)
        # TODO saving image
 
        print("Generated Image")
+
+       ######## STEP 6 - Evaluate the classifier on the defended examples
+       predictions = classifier.predict(x_train_defended)
+       accuracy_defended = np.sum(np.argmax(predictions, axis=1) == np.argmax(y_train, axis=1)) / len(y_train)
+
+       print("Accuracy on non adversarial examples: {}%".format(accuracy_non_adv * 100))
+       print("Accuracy on adversarial examples: {}%".format(accuracy_adv * 100))
+       print("Accuracy on defended examples: {}%".format(accuracy_defended * 100))
        ######## Killian test
 
 if __name__ == "__main__":
