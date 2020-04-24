@@ -12,9 +12,9 @@ from utils.util_art import save_images_files
 from models_art.gan_v2_art import InvertorDefenseGAN, gan_from_config
 
 class EncoderReconstructor(object):
-    def __init__(self, cfg):
+    def __init__(self, batch_size):
 
-        gan = gan_from_config(cfg, True)
+        gan = gan_from_config(batch_size, True)
 
         gan.load_model()
         self.batch_size = gan.batch_size
