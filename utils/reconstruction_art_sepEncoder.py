@@ -99,6 +99,7 @@ class EncoderReconstructor(object):
         self.modifier_placeholder = tf.placeholder(tf.float32, shape=[self.batch_size, self.latent_dim],
                                                    name='z_modifier_placeholder')
 
+        #Killian: resets the value to a new image
         self.setup = tf.assign(timg, self.assign_timg)
         self.setup_z_init = tf.assign(z_init, self.z_init_input_placeholder)
         self.setup_modifier_killian = tf.assign(modifier_killian, self.modifier_placeholder)
@@ -178,9 +179,18 @@ class EncoderReconstructor(object):
         unmodified_z_tensor =  tf.stop_gradient(unmodified_z_reshaped)
         #####
 
+        # unmodified_z_value = sess.run(unmodified_z_tensor, feed_dict={images_tensor: x_train})
+        #
+        # return unmodified_z_value
+
+        return sess, unmodified_z_tensor, images_tensor
+
+    def generate_z_extrapolated_killian2(self, sess, unmodified_z_tensor, images_tensor, x_train):
+
         unmodified_z_value = sess.run(unmodified_z_tensor, feed_dict={images_tensor: x_train})
 
         return unmodified_z_value
+
 
     def generate_z_killian(self, x_train):
         config = tf.ConfigProto()

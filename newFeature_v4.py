@@ -144,7 +144,9 @@ def main():
 
     encoderOld = EncoderReconstructor(batch_size)
     # encoderOld.prepare_encoder()
-    unmodified_z_value = encoderOld.generate_z_extrapolated_killian(x_train_adv)
+    sess, unmodified_z_tensor, images_tensor = encoderOld.generate_z_extrapolated_killian(x_train_adv)
+    unmodified_z_value = encoderOld.generate_z_extrapolated_killian2(sess, unmodified_z_tensor, images_tensor, x_train_adv)
+    unmodified_z_value2 = encoderOld.generate_z_extrapolated_killian2(sess, unmodified_z_tensor, images_tensor, x_train_adv)
 
     generator = create_ts1_generator_model(batch_size)
 
