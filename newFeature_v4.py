@@ -66,26 +66,33 @@ def create_ts1_art_model(min_pixel_value, max_pixel_value):
 
 def create_ts1_encoder_model(batch_size):
     encoder_reconstructor = EncoderReconstructor(batch_size)
-    encoder_reconstructor.prepare_encoder()
+    # encoder_reconstructor.prepare_encoder()
+
+    # encoderOld.prepare_encoder()
+    sess, unmodified_z_tensor, images_tensor = encoder_reconstructor.generate_z_extrapolated_killian()
+    # unmodified_z_value = encoder_reconstructor.generate_z_extrapolated_killian2(sess, unmodified_z_tensor, images_tensor, x_train_adv)
+
+
 
     encoder = Tensorflow1Encoder(
         # clip_values=(min_pixel_value, max_pixel_value),
-        input_ph=encoder_reconstructor.images_tensor,
-        output=encoder_reconstructor.unmodified_z_tensor,
+        input_ph=images_tensor,
+        output=unmodified_z_tensor,
         # labels_ph=labels_ph,
         # train=train,
         # loss=loss,
         # learning=None,
-        sess=encoder_reconstructor.sess,
+        sess=sess,
         # preprocessing_defences=[]
     )
 
-    return encoder, encoder_reconstructor
+    return encoder
 
 
 def create_ts1_generator_model(batch_size):
     generator_reconstructor = GeneratorReconstructor(batch_size)
-    generator_reconstructor.prepare()
+    # generator_reconstructor.prepare()
+
     generator = Tensorflow1Generator(
         # clip_values=(min_pixel_value, max_pixel_value),
         input_z=generator_reconstructor.z_init_input_placeholder,
@@ -140,17 +147,12 @@ def main():
     # TODO incorporate cfg in reconstructors
 
 
-    # encoder, encoderOld = create_ts1_encoder_model(batch_size)
+    encoder = create_ts1_encoder_model(batch_size)
+    unmodified_z_value = encoder.encode(x_train)
 
-    encoderOld = EncoderReconstructor(batch_size)
-    # encoderOld.prepare_encoder()
-    sess, unmodified_z_tensor, images_tensor = encoderOld.generate_z_extrapolated_killian(x_train_adv)
-    unmodified_z_value = encoderOld.generate_z_extrapolated_killian2(sess, unmodified_z_tensor, images_tensor, x_train_adv)
-    unmodified_z_value2 = encoderOld.generate_z_extrapolated_killian2(sess, unmodified_z_tensor, images_tensor, x_train_adv)
+    # generator = create_ts1_generator_model(batch_size)
 
-    generator = create_ts1_generator_model(batch_size)
-
-    defenceGan = DefenceGan(encoder, generator)
+    defenceGan = DefenceGan(encoder)
 
     #generate the defended sample
     x_train_defended = defenceGan(x_train_adv)

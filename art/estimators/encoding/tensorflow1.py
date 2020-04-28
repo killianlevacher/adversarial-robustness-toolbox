@@ -132,8 +132,11 @@ class Tensorflow1Encoder(EncoderMixin, TensorFlowEstimator):  # lgtm [py/missing
         #     self._reduce_labels = False
 
 
-    def encode(self, image):
-        unmodified_z_value = self._sess.run(self._output, feed_dict={self._input_ph: image})
+    def encode(self, x_train):
+        unmodified_z_value = self._sess.run(self._output, feed_dict={self._input_ph: x_train})
+        # unmodified_z_value = self.sess.run(self.unmodified_z_tensor, feed_dict={self.images_tensor: x_train})
+
+        # unmodified_z_value = self._sess.run(self._output, feed_dict={self._input_ph: image})
 
         return unmodified_z_value
 

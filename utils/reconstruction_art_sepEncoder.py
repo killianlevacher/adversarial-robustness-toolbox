@@ -142,7 +142,7 @@ class EncoderReconstructor(object):
 
         # return unmodified_z_value
 
-    def generate_z_extrapolated_killian(self, x_train):
+    def generate_z_extrapolated_killian(self):
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True
         sess = tf.Session(config=config)

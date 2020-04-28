@@ -43,7 +43,7 @@ class DefenceGan(Preprocessor):
 
     # params = ["clip_values", "bit_depth"]
 
-    def __init__(self, encoder, generator):
+    def __init__(self, encoder):
         # def __init__(self, clip_values, bit_depth=8, apply_fit=False, apply_predict=True):
         """
         Create an instance of DefenceGAN.
@@ -52,10 +52,10 @@ class DefenceGan(Preprocessor):
         super(DefenceGan, self).__init__()
 
         assert isinstance(encoder, EncoderMixin)
-        assert isinstance(generator, GeneratorMixin)
+        # assert isinstance(generator, GeneratorMixin)
 
         self.encoder = encoder
-        self.generator = generator
+        # self.generator = generator
         # self._is_fitted = True
         # self._apply_fit = apply_fit
         # self._apply_predict = apply_predict
@@ -72,10 +72,7 @@ class DefenceGan(Preprocessor):
         :return: Squeezed sample.
         :rtype: `np.ndarray`
         """
-
         unmodified_z_value = self.encoder.encode(x)
-
-        # unmodified_z_value = self.encoder.generate_z_killian(x)
 
         logger.info("Encoded x into Z encoding")
 
