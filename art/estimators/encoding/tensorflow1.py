@@ -119,17 +119,17 @@ class Tensorflow1Encoder(EncoderMixin, TensorFlowEstimator):  # lgtm [py/missing
         self._sess = sess
 
         # Get the internal layers
-        self._layer_names = self._get_layers()
+        # self._layer_names = self._get_layers()
 
         # Get the loss gradients graph
         if self._loss is not None:
             self._loss_grads = tf.gradients(self._loss, self._input_ph)[0]
 
         # Check if the loss function requires as input index labels instead of one-hot-encoded labels
-        if len(self._labels_ph.shape) == 1:
-            self._reduce_labels = True
-        else:
-            self._reduce_labels = False
+        # if len(self._labels_ph.shape) == 1:
+        #     self._reduce_labels = True
+        # else:
+        #     self._reduce_labels = False
 
     def predict(self, x, batch_size=128, **kwargs):
         """
@@ -201,7 +201,8 @@ class Tensorflow1Encoder(EncoderMixin, TensorFlowEstimator):  # lgtm [py/missing
         return grads
 
 
-    # def fit(self, x, y, batch_size=128, nb_epochs=10, **kwargs):
+    def fit(self, x, y, batch_size=128, nb_epochs=10, **kwargs):
+        pass
     #     """
     #     Fit the classifier on the training set `(x, y)`.
     #
@@ -416,7 +417,8 @@ class Tensorflow1Encoder(EncoderMixin, TensorFlowEstimator):  # lgtm [py/missing
     #
     #     return result
     #
-    # def get_activations(self, x, layer, batch_size=128):
+    def get_activations(self, x, layer, batch_size=128):
+        pass
     #     """
     #     Return the output of the specified layer for input `x`. `layer` is specified by layer index (between 0 and
     #     `nb_layers - 1`) or by name. The number of layers can be determined by counting the results returned by
@@ -471,7 +473,8 @@ class Tensorflow1Encoder(EncoderMixin, TensorFlowEstimator):  # lgtm [py/missing
     #
     #     return results
     #
-    # def set_learning_phase(self, train):
+    def set_learning_phase(self, train):
+        pass
     #     """
     #     Set the learning phase for the backend framework.
     #

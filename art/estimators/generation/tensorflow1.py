@@ -38,7 +38,8 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
     """
     def __init__(
         self,
-        input_ph,
+        input_z,
+        input_modifier,
         output,
         # labels_ph=None,
         # train=None,
@@ -103,8 +104,12 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
             # preprocessing=preprocessing,
         )
         # self._nb_classes = int(output.get_shape()[-1])
-        self._input_shape = tuple(input_ph.get_shape().as_list()[1:])
-        self._input_ph = input_ph
+        # self._input_shape = tuple(input_ph.get_shape().as_list()[1:])
+        # self._input_ph = input_ph
+
+        self._input_z = input_z
+        self._input_modifier = input_modifier
+
         self._output = output
         # self._labels_ph = labels_ph
         # self._train = train
@@ -118,17 +123,17 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
         self._sess = sess
 
         # Get the internal layers
-        self._layer_names = self._get_layers()
+        # self._layer_names = self._get_layers()
 
         # Get the loss gradients graph
-        if self._loss is not None:
-            self._loss_grads = tf.gradients(self._loss, self._input_ph)[0]
+        # if self._loss is not None:
+        #     self._loss_grads = tf.gradients(self._loss, self._input_ph)[0]
 
         # Check if the loss function requires as input index labels instead of one-hot-encoded labels
-        if len(self._labels_ph.shape) == 1:
-            self._reduce_labels = True
-        else:
-            self._reduce_labels = False
+        # if len(self._labels_ph.shape) == 1:
+        #     self._reduce_labels = True
+        # else:
+        #     self._reduce_labels = False
 
     def predict(self, x, batch_size=128, **kwargs):
         """
@@ -202,7 +207,8 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
         return grads
 
 
-    # def fit(self, x, y, batch_size=128, nb_epochs=10, **kwargs):
+    def fit(self, x, y, batch_size=128, nb_epochs=10, **kwargs):
+        pass
     #     """
     #     Fit the classifier on the training set `(x, y)`.
     #
@@ -417,7 +423,8 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
     #
     #     return result
 
-    # def get_activations(self, x, layer, batch_size=128):
+    def get_activations(self, x, layer, batch_size=128):
+        pass
     #     """
     #     Return the output of the specified layer for input `x`. `layer` is specified by layer index (between 0 and
     #     `nb_layers - 1`) or by name. The number of layers can be determined by counting the results returned by
@@ -472,7 +479,8 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
     #
     #     return results
 
-    # def set_learning_phase(self, train):
+    def set_learning_phase(self, train):
+        pass
     #     """
     #     Set the learning phase for the backend framework.
     #

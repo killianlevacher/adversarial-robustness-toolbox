@@ -66,7 +66,7 @@ def create_ts1_art_model(min_pixel_value, max_pixel_value):
 
 def create_ts1_encoder_model(batch_size):
     encoder_reconstructor = EncoderReconstructor(batch_size)
-
+    encoder_reconstructor.prepare_encoder()
     encoder = Tensorflow1Encoder(
         # clip_values=(min_pixel_value, max_pixel_value),
         input_ph=encoder_reconstructor.images_tensor,
@@ -84,12 +84,12 @@ def create_ts1_encoder_model(batch_size):
 
 def create_ts1_generator_model(batch_size):
     generator_reconstructor = GeneratorReconstructor(batch_size)
-
+    generator_reconstructor.prepare()
     generator = Tensorflow1Generator(
         # clip_values=(min_pixel_value, max_pixel_value),
         input_z=generator_reconstructor.z_init_input_placeholder,
         input_modifier=generator_reconstructor.modifier_placeholder,
-        output=generator_reconstructor.image_tensor,
+        output=generator_reconstructor.image_generated_tensor,
         # labels_ph=labels_ph,
         # train=train,
         loss=generator_reconstructor.image_rec_loss,
