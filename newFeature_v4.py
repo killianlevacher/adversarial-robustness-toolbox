@@ -84,25 +84,11 @@ def create_ts1_encoder_model(batch_size):
     return encoder
 
 
-def create_ts1_generator_model(batch_size, unmodified_z_value):
+def create_ts1_generator_model(batch_size):
     generator_reconstructor = GeneratorReconstructor(batch_size)
 
-    # image_value = generator_reconstructor.generate_image_killian(unmodified_z_value)
-    sess, image_generated_tensor, z_init_input_placeholder, modifier_placeholder = generator_reconstructor.generate_image_killian_extrapolated(unmodified_z_value)
+    sess, image_generated_tensor, z_init_input_placeholder, modifier_placeholder = generator_reconstructor.generate_image_killian_extrapolated()
 
-    random_modifier = np.random.rand(batch_size, 128)
-
-    image_value = sess.run(image_generated_tensor,
-                           feed_dict={z_init_input_placeholder: unmodified_z_value,
-                                      modifier_placeholder: random_modifier})
-
-    # generator_reconstructor.prepare()
-
-    # random_modifier = np.random.rand(batch_size, 128)
-    #
-    # image_value = sess.run(image_generated_tensor,
-    #                        feed_dict={z_init_input_placeholder: unmodified_z_value,
-    #                                   modifier_placeholder: random_modifier})
     generator = Tensorflow1Generator(
         # clip_values=(min_pixel_value, max_pixel_value),
         input_z=z_init_input_placeholder,
@@ -115,7 +101,6 @@ def create_ts1_generator_model(batch_size, unmodified_z_value):
         sess=sess,
         # preprocessing_defences=[]
     )
-
 
     return generator
 
@@ -151,46 +136,18 @@ def main():
 
 
 
-    ######## STEP 5A Defence image to z encoding
-
-    # TODO separate defenceGan Classes that I won't change from the rest
-    # Deintangle as much as possible encoding and decoder code
-    # TODO incorporate cfg in reconstructors
-
+    ######## STEP 5 Create Encoder and Generator
 
     encoder = create_ts1_encoder_model(batch_size)
-    unmodified_z_value = encoder.encode(x_train)
+    generator = create_ts1_generator_model(batch_size)
 
-    generator = create_ts1_generator_model(batch_size, unmodified_z_value)
-    latent_dim = 128 #TODO remove this
-    random_modifier = np.random.rand(batch_size, latent_dim)
-
-
-    image_projected = generator.project(unmodified_z_value, random_modifier)
-
-    defenceGan = DefenceGan(encoder)
+    ######## STEP 5 Create DefenceGan
+    defenceGan = DefenceGan(encoder, generator)
 
     #generate the defended sample
     x_train_defended = defenceGan(x_train_adv)
-
-    # encoder_reconstructor = EncoderReconstructor(batch_size)
-
-    ######## STEP 5B - Defence - z to image generation
-
-
-    #TODO convert reconstructor classes in ART encoder and decoder classes 
-
-    unmodified_z_value = encoder_reconstructor.generate_z_killian(x_train_adv)
-
-    logger.info("Encoded image into Z form")
-
-
-    # generator_reconstructor = GeneratorReconstructor(batch_size)
-
-    x_train_defended = generator_reconstructor.generate_image_killian(unmodified_z_value)
     # TODO saving image
 
-    logger.info("Generated Image")
 
     ######## STEP 6 - Evaluate the classifier on the defended examples
     predictions = classifier.predict(x_train_defended)

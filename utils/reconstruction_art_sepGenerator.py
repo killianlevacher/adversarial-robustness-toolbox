@@ -182,7 +182,7 @@ class GeneratorReconstructor(object):
 
         # return image_value
 
-    def generate_image_killian_extrapolated(self, unmodified_z_value):
+    def generate_image_killian_extrapolated(self):
 
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True

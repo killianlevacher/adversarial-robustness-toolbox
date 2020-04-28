@@ -139,8 +139,8 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
     def project(self, unmodified_z_value, input_modifier):
         # Apply preprocessing
         image_value = self._sess.run(self._output,
-                                     feed_dict={self._input_z: unmodified_z_value,
-                                                self._input_modifier: input_modifier})
+                               feed_dict={self._input_z: unmodified_z_value,
+                                          self._input_modifier: input_modifier})
 
         return image_value
 
