@@ -133,7 +133,7 @@ class Tensorflow1Encoder(EncoderMixin, TensorFlowEstimator):  # lgtm [py/missing
 
     def predict(self, x, batch_size=128, **kwargs):
         """
-        Perform prediction for a batch of inputs.
+        Generates z from a batch of inputs
 
         :param x: Test set.
         :type x: `np.ndarray`
@@ -142,27 +142,29 @@ class Tensorflow1Encoder(EncoderMixin, TensorFlowEstimator):  # lgtm [py/missing
         :return: Array of predictions of shape `(num_inputs, nb_classes)`.
         :rtype: `np.ndarray`
         """
-        # Apply preprocessing
-        x_preprocessed, _ = self._apply_preprocessing(x, y=None, fit=False)
 
-        # Run prediction with batch processing
-        results = np.zeros((x_preprocessed.shape[0], self.nb_classes), dtype=np.float32)
-        num_batch = int(np.ceil(len(x_preprocessed) / float(batch_size)))
-        for m in range(num_batch):
-            # Batch indexes
-            begin, end = m * batch_size, min((m + 1) * batch_size, x_preprocessed.shape[0])
 
-            # Create feed_dict
-            feed_dict = {self._input_ph: x_preprocessed[begin:end]}
-            feed_dict.update(self._feed_dict)
-
-            # Run prediction
-            results[begin:end] = self._sess.run(self._output, feed_dict=feed_dict)
-
-        # Apply postprocessing
-        predictions = self._apply_postprocessing(preds=results, fit=False)
-
-        return predictions
+        # # Apply preprocessing
+        # x_preprocessed, _ = self._apply_preprocessing(x, y=None, fit=False)
+        #
+        # # Run prediction with batch processing
+        # results = np.zeros((x_preprocessed.shape[0], self.nb_classes), dtype=np.float32)
+        # num_batch = int(np.ceil(len(x_preprocessed) / float(batch_size)))
+        # for m in range(num_batch):
+        #     # Batch indexes
+        #     begin, end = m * batch_size, min((m + 1) * batch_size, x_preprocessed.shape[0])
+        #
+        #     # Create feed_dict
+        #     feed_dict = {self._input_ph: x_preprocessed[begin:end]}
+        #     feed_dict.update(self._feed_dict)
+        #
+        #     # Run prediction
+        #     results[begin:end] = self._sess.run(self._output, feed_dict=feed_dict)
+        #
+        # # Apply postprocessing
+        # predictions = self._apply_postprocessing(preds=results, fit=False)
+        #
+        # return predictions
 
     def loss_gradient(self, x, y, **kwargs):
         """

@@ -3,28 +3,18 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import argparse
-import pickle
 import logging
-import os
-import re
-import sys
-import os
+
 import numpy as np
 import tensorflow as tf
-import matplotlib.pyplot as plt
 
-from art.utils import load_mnist
 from art.attacks.evasion import FastGradientMethod
+from art.classifiers import TFClassifier
 from art.defences.preprocessor.defence_gan import DefenceGan
 from art.estimators.encoding.tensorflow1 import Tensorflow1Encoder
 from art.estimators.generation.tensorflow1 import Tensorflow1Generator
-
-from art.utils import random_targets
-from art.classifiers import TFClassifier
+from art.utils import load_mnist
 from tests.utils import master_seed
-from blackbox_art import get_cached_gan_data, get_reconstructor
-from models_art.gan_v2_art import InvertorDefenseGAN, gan_from_config
 # from utils.reconstruction_art_separated import Reconstructor
 from utils.reconstruction_art_sepEncoder import EncoderReconstructor
 from utils.reconstruction_art_sepGenerator import GeneratorReconstructor
