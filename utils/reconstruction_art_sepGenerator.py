@@ -68,6 +68,8 @@ class GeneratorReconstructor(object):
         # #P2 version axes = range(1, num_dim) - fix: https://github.com/WojciechMormul/gan/issues/3
         # axes = list(range(1, num_dim))
         #
+
+        #TODO to include in TS1Generator
         # self.image_rec_loss = tf.reduce_mean(tf.square(self.z_hats_recs - timg_tiled_rr), axis=axes)
         # rec_loss = tf.reduce_sum(self.image_rec_loss)
         #
@@ -160,17 +162,21 @@ class GeneratorReconstructor(object):
         sess = tf.Session(config=config)
 
         # z_init_input_placeholder = tf.placeholder(tf.float32, shape=[1,1,cfg["BATCH_SIZE"],latent_dim], name='z_init_input_placeholder1')
-        z_init_input_placeholder = tf.placeholder(tf.float32, shape=[self.batch_size, self.latent_dim],
+
+        #TODO use as TS1Generator Input1
+        self.z_init_input_placeholder = tf.placeholder(tf.float32, shape=[self.batch_size, self.latent_dim],
                                                   name='z_init_input_placeholder1')
-        modifier_placeholder = tf.placeholder(tf.float32, shape=[self.batch_size, self.latent_dim],
+
+        # TODO use as TS1Generator Input2
+        self.modifier_placeholder = tf.placeholder(tf.float32, shape=[self.batch_size, self.latent_dim],
                                               name='z_modifier_placeholder1')
 
-        image_tensor = self.generate_image(z_init_input_placeholder, modifier_placeholder,
+        self.image_tensor = self.generate_image(z_init_input_placeholder, modifier_placeholder,
                                                               batch_size=self.batch_size, reconstructor_id=3)
 
         random_modifier = np.random.rand(self.batch_size, self.latent_dim)
 
-        image_value = sess.run(image_tensor, feed_dict={z_init_input_placeholder: unmodified_z_value,
+        image_value = sess.run(self.image_tensor, feed_dict={z_init_input_placeholder: unmodified_z_value,
                                                         modifier_placeholder: random_modifier})
 
         return image_value

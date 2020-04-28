@@ -41,7 +41,7 @@ class DefenceGan(Preprocessor):
 
     """
 
-    params = ["clip_values", "bit_depth"]
+    # params = ["clip_values", "bit_depth"]
 
     def __init__(self, encoder, generator):
         # def __init__(self, clip_values, bit_depth=8, apply_fit=False, apply_predict=True):
@@ -61,14 +61,6 @@ class DefenceGan(Preprocessor):
         # self._apply_predict = apply_predict
         # self.set_params(clip_values=clip_values, bit_depth=bit_depth)
 
-    @property
-    def apply_fit(self):
-        return self._apply_fit
-
-    @property
-    def apply_predict(self):
-        return self._apply_predict
-
     def __call__(self, x, y=None):
         """
         Apply DefenceGan to sample `x`.
@@ -87,7 +79,9 @@ class DefenceGan(Preprocessor):
 
         # generator_reconstructor = GeneratorReconstructor(batch_size)
 
-        x_defended = self.generate_image_killian(unmodified_z_value)
+        #TODO use the gradients from generate to adjust multiple times the modifier
+
+        x_defended = self.generator.generate_image_killian(unmodified_z_value)
 
         logger.info("Generated defended x from Z encoding")
         return x_defended
@@ -102,35 +96,44 @@ class DefenceGan(Preprocessor):
         #
         # return res, y
 
-    def estimate_gradient(self, x, grad):
-        return grad
 
-    def fit(self, x, y=None, **kwargs):
-        """
-        No parameters to learn for this method; do nothing.
-        """
-        pass
+    # @property
+    # def apply_fit(self):
+    #     return self._apply_fit
+    #
+    # @property
+    # def apply_predict(self):
+    #     return self._apply_predict
 
-    def set_params(self, **kwargs):
-        """
-        Take in a dictionary of parameters and applies defence-specific checks before saving them as attributes.
+    # def estimate_gradient(self, x, grad):
+    #     return grad
 
-        :param clip_values: Tuple of the form `(min, max)` representing the minimum and maximum values allowed
-               for features.
-        :type clip_values: `tuple`
-        :param bit_depth: The number of bits per channel for encoding the data.
-        :type bit_depth: `int`
-        """
-        # Save defence-specific parameters
-        super(DefenceGan, self).set_params(**kwargs)
+    # def fit(self, x, y=None, **kwargs):
+    #     """
+    #     No parameters to learn for this method; do nothing.
+    #     """
+    #     pass
 
-        if not isinstance(self.bit_depth, (int, np.int)) or self.bit_depth <= 0 or self.bit_depth > 64:
-            raise ValueError("The bit depth must be between 1 and 64.")
-
-        if len(self.clip_values) != 2:
-            raise ValueError("`clip_values` should be a tuple of 2 floats containing the allowed data range.")
-
-        if np.array(self.clip_values[0] >= self.clip_values[1]).any():
-            raise ValueError("Invalid `clip_values`: min >= max.")
-
-        return True
+    # def set_params(self, **kwargs):
+    #     """
+    #     Take in a dictionary of parameters and applies defence-specific checks before saving them as attributes.
+    #
+    #     :param clip_values: Tuple of the form `(min, max)` representing the minimum and maximum values allowed
+    #            for features.
+    #     :type clip_values: `tuple`
+    #     :param bit_depth: The number of bits per channel for encoding the data.
+    #     :type bit_depth: `int`
+    #     """
+    #     # Save defence-specific parameters
+    #     super(DefenceGan, self).set_params(**kwargs)
+    #
+    #     if not isinstance(self.bit_depth, (int, np.int)) or self.bit_depth <= 0 or self.bit_depth > 64:
+    #         raise ValueError("The bit depth must be between 1 and 64.")
+    #
+    #     if len(self.clip_values) != 2:
+    #         raise ValueError("`clip_values` should be a tuple of 2 floats containing the allowed data range.")
+    #
+    #     if np.array(self.clip_values[0] >= self.clip_values[1]).any():
+    #         raise ValueError("Invalid `clip_values`: min >= max.")
+    #
+    #     return True

@@ -78,15 +78,15 @@ def create_ts1_encoder_model(batch_size):
     encoder_reconstructor = EncoderReconstructor(batch_size)
 
     encoder = Tensorflow1Encoder(
-        clip_values=(min_pixel_value, max_pixel_value),
-        input_ph=input_ph,
-        output=logits,
-        labels_ph=labels_ph,
-        train=train,
-        loss=loss,
-        learning=None,
+        # clip_values=(min_pixel_value, max_pixel_value),
+        input_ph=encoder_reconstructor.images_tensor,
+        output=encoder_reconstructor.unmodified_z_tensor,
+        # labels_ph=labels_ph,
+        # train=train,
+        # loss=loss,
+        # learning=None,
         sess=encoder_reconstructor.sess,
-        preprocessing_defences=[]
+        # preprocessing_defences=[]
     )
 
     return encoder
@@ -96,15 +96,16 @@ def create_ts1_generator_model(batch_size):
     generator_reconstructor = GeneratorReconstructor(batch_size)
 
     generator = Tensorflow1Generator(
-        clip_values=(min_pixel_value, max_pixel_value),
-        input_ph=input_ph,
-        output=logits,
-        labels_ph=labels_ph,
-        train=train,
-        loss=loss,
-        learning=None,
+        # clip_values=(min_pixel_value, max_pixel_value),
+        input_z=generator_reconstructor.z_init_input_placeholder,
+        input_modifier=generator_reconstructor.modifier_placeholder,
+        output=generator_reconstructor.image_tensor,
+        # labels_ph=labels_ph,
+        # train=train,
+        loss=generator_reconstructor.image_rec_loss,
+        # learning=None,
         sess=generator_reconstructor.sess,
-        preprocessing_defences=[]
+        # preprocessing_defences=[]
     )
 
     return generator
@@ -149,10 +150,12 @@ def main():
 
 
     encoder = create_ts1_encoder_model(batch_size)
+
     generator = create_ts1_generator_model(batch_size)
 
     defenceGan = DefenceGan(encoder, generator)
 
+    #generate the defended sample
     x_train_defended = defenceGan(x_train_adv)
 
     # encoder_reconstructor = EncoderReconstructor(batch_size)

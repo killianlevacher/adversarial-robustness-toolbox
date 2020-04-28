@@ -129,11 +129,13 @@ class EncoderReconstructor(object):
         classes = 10
         # x_shape, classes = list(train_images.shape[1:]), train_labels.shape[1]
 
+        #TODO use as TS1Encoder Input
         images_tensor = tf.placeholder(tf.float32, shape=[None] + x_shape)
         labels_tensor = tf.placeholder(tf.float32, shape=(None, classes))
 
         unmodified_z_tensor = self.generate_z(images_tensor, self.latent_dim, batch_size=self.batch_size, reconstructor_id=3)
 
+        # TODO use as TS1Encoder Output
         unmodified_z_value = sess.run(unmodified_z_tensor, feed_dict={images_tensor: x_train})
 
         return unmodified_z_value
