@@ -98,7 +98,7 @@ class GeneratorReconstructor(object):
         #TODO I don't think we need the assign and timg variables anymore
         self.assign_timg = tf.placeholder(tf.float32, x_shape, name='assign_timg')
         self.z_init_input_placeholder = tf.placeholder(tf.float32, shape=[self.batch_size, self.latent_dim],
-                                                       name='z_init_input_placeholder')
+                                                       name='z_init_input_placeholderK')
         self.modifier_placeholder = tf.placeholder(tf.float32, shape=[self.batch_size, self.latent_dim],
                                                    name='z_modifier_placeholder')
 
@@ -182,6 +182,40 @@ class GeneratorReconstructor(object):
 
         # return image_value
 
+    def generate_image_killian_extrapolated(self, unmodified_z_value):
+
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
+        sess = tf.Session(config=config)
+
+        # z_init_input_placeholder = tf.placeholder(tf.float32, shape=[1,1,cfg["BATCH_SIZE"],latent_dim], name='z_init_input_placeholder1')
+
+        # # TODO use as TS1Generator Input1
+        # self.z_init_input_placeholder = tf.placeholder(tf.float32, shape=[self.batch_size, self.latent_dim],
+        #                                                name='z_init_input_placeholder1')
+        #
+        # # TODO use as TS1Generator Input2
+        # self.modifier_placeholder = tf.placeholder(tf.float32, shape=[self.batch_size, self.latent_dim],
+        #                                            name='z_modifier_placeholder1')
+
+        self.image_generated_tensor = self.generate_image(self.z_init_input_placeholder, self.modifier_placeholder,
+                                                          batch_size=self.batch_size, reconstructor_id=3)
+
+        # random_modifier = np.random.rand(self.batch_size, self.latent_dim)
+        #
+        # image_value = sess.run(self.image_generated_tensor,
+        #                        feed_dict={self.z_init_input_placeholder: unmodified_z_value,
+        #                                   self.modifier_placeholder: random_modifier})
+
+
+        return sess, self.image_generated_tensor, self.z_init_input_placeholder, self.modifier_placeholder
+        # image_value = sess.run(self.image_generated_tensor,
+        #                        feed_dict={self.z_init_input_placeholder: unmodified_z_value,
+        #                                   self.modifier_placeholder: random_modifier})
+        #
+        # return image_value
+
+
     def generate_image_killian(self, unmodified_z_value):
 
         config = tf.ConfigProto()
@@ -191,12 +225,12 @@ class GeneratorReconstructor(object):
         # z_init_input_placeholder = tf.placeholder(tf.float32, shape=[1,1,cfg["BATCH_SIZE"],latent_dim], name='z_init_input_placeholder1')
 
         #TODO use as TS1Generator Input1
-        self.z_init_input_placeholder = tf.placeholder(tf.float32, shape=[self.batch_size, self.latent_dim],
-                                                  name='z_init_input_placeholder1')
+        # self.z_init_input_placeholder = tf.placeholder(tf.float32, shape=[self.batch_size, self.latent_dim],
+        #                                           name='z_init_input_placeholder1')
 
         # TODO use as TS1Generator Input2
-        self.modifier_placeholder = tf.placeholder(tf.float32, shape=[self.batch_size, self.latent_dim],
-                                              name='z_modifier_placeholder1')
+        # self.modifier_placeholder = tf.placeholder(tf.float32, shape=[self.batch_size, self.latent_dim],
+        #                                       name='z_modifier_placeholder1')
 
         self.image_generated_tensor = self.generate_image(self.z_init_input_placeholder, self.modifier_placeholder,
                                                               batch_size=self.batch_size, reconstructor_id=3)

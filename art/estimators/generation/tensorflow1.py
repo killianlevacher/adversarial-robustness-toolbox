@@ -110,6 +110,7 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
         self._input_z = input_z
         self._input_modifier = input_modifier
 
+
         self._output = output
         # self._labels_ph = labels_ph
         # self._train = train
@@ -135,7 +136,15 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
         # else:
         #     self._reduce_labels = False
 
-    def predict(self, x, batch_size=128, **kwargs):
+    def project(self, unmodified_z_value, input_modifier):
+        # Apply preprocessing
+        image_value = self._sess.run(self._output,
+                                     feed_dict={self._input_z: unmodified_z_value,
+                                                self._input_modifier: input_modifier})
+
+        return image_value
+
+    def predict(self, unmodified_z_value, input_modifier):
         """
         Perform prediction for a batch of inputs.
 
@@ -147,26 +156,30 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
         :rtype: `np.ndarray`
         """
         # Apply preprocessing
-        x_preprocessed, _ = self._apply_preprocessing(x, y=None, fit=False)
+        image_value = self._sess.run(self._output,
+                                     feed_dict={self._input_z: unmodified_z_value,
+                                                self._input_modifier: input_modifier})
 
-        # Run prediction with batch processing
-        results = np.zeros((x_preprocessed.shape[0], self.nb_classes), dtype=np.float32)
-        num_batch = int(np.ceil(len(x_preprocessed) / float(batch_size)))
-        for m in range(num_batch):
-            # Batch indexes
-            begin, end = m * batch_size, min((m + 1) * batch_size, x_preprocessed.shape[0])
-
-            # Create feed_dict
-            feed_dict = {self._input_ph: x_preprocessed[begin:end]}
-            feed_dict.update(self._feed_dict)
-
-            # Run prediction
-            results[begin:end] = self._sess.run(self._output, feed_dict=feed_dict)
-
-        # Apply postprocessing
-        predictions = self._apply_postprocessing(preds=results, fit=False)
-
-        return predictions
+        # x_preprocessed, _ = self._apply_preprocessing(x, y=None, fit=False)
+        #
+        # # Run prediction with batch processing
+        # results = np.zeros((x_preprocessed.shape[0], self.nb_classes), dtype=np.float32)
+        # num_batch = int(np.ceil(len(x_preprocessed) / float(batch_size)))
+        # for m in range(num_batch):
+        #     # Batch indexes
+        #     begin, end = m * batch_size, min((m + 1) * batch_size, x_preprocessed.shape[0])
+        #
+        #     # Create feed_dict
+        #     feed_dict = {self._input_ph: x_preprocessed[begin:end]}
+        #     feed_dict.update(self._feed_dict)
+        #
+        #     # Run prediction
+        #     results[begin:end] = self._sess.run(self._output, feed_dict=feed_dict)
+        #
+        # # Apply postprocessing
+        # predictions = self._apply_postprocessing(preds=results, fit=False)
+        #
+        # return predictions
 
 
 

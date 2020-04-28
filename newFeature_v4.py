@@ -84,22 +84,38 @@ def create_ts1_encoder_model(batch_size):
     return encoder
 
 
-def create_ts1_generator_model(batch_size):
+def create_ts1_generator_model(batch_size, unmodified_z_value):
     generator_reconstructor = GeneratorReconstructor(batch_size)
+
+    # image_value = generator_reconstructor.generate_image_killian(unmodified_z_value)
+    sess, image_generated_tensor, z_init_input_placeholder, modifier_placeholder = generator_reconstructor.generate_image_killian_extrapolated(unmodified_z_value)
+
+    random_modifier = np.random.rand(batch_size, 128)
+
+    image_value = sess.run(image_generated_tensor,
+                           feed_dict={z_init_input_placeholder: unmodified_z_value,
+                                      modifier_placeholder: random_modifier})
+
     # generator_reconstructor.prepare()
 
+    # random_modifier = np.random.rand(batch_size, 128)
+    #
+    # image_value = sess.run(image_generated_tensor,
+    #                        feed_dict={z_init_input_placeholder: unmodified_z_value,
+    #                                   modifier_placeholder: random_modifier})
     generator = Tensorflow1Generator(
         # clip_values=(min_pixel_value, max_pixel_value),
-        input_z=generator_reconstructor.z_init_input_placeholder,
-        input_modifier=generator_reconstructor.modifier_placeholder,
-        output=generator_reconstructor.image_generated_tensor,
+        input_z=z_init_input_placeholder,
+        input_modifier=modifier_placeholder,
+        output=image_generated_tensor,
         # labels_ph=labels_ph,
         # train=train,
         loss=generator_reconstructor.image_rec_loss,
         # learning=None,
-        sess=generator_reconstructor.sess,
+        sess=sess,
         # preprocessing_defences=[]
     )
+
 
     return generator
 
@@ -145,7 +161,12 @@ def main():
     encoder = create_ts1_encoder_model(batch_size)
     unmodified_z_value = encoder.encode(x_train)
 
-    # generator = create_ts1_generator_model(batch_size)
+    generator = create_ts1_generator_model(batch_size, unmodified_z_value)
+    latent_dim = 128 #TODO remove this
+    random_modifier = np.random.rand(batch_size, latent_dim)
+
+
+    image_projected = generator.project(unmodified_z_value, random_modifier)
 
     defenceGan = DefenceGan(encoder)
 
