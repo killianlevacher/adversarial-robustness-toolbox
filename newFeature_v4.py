@@ -66,13 +66,8 @@ def create_ts1_art_model(min_pixel_value, max_pixel_value):
 
 def create_ts1_encoder_model(batch_size):
     encoder_reconstructor = EncoderReconstructor(batch_size)
-    # encoder_reconstructor.prepare_encoder()
 
-    # encoderOld.prepare_encoder()
     sess, unmodified_z_tensor, images_tensor = encoder_reconstructor.generate_z_extrapolated_killian()
-    # unmodified_z_value = encoder_reconstructor.generate_z_extrapolated_killian2(sess, unmodified_z_tensor, images_tensor, x_train_adv)
-
-
 
     encoder = Tensorflow1Encoder(
         # clip_values=(min_pixel_value, max_pixel_value),
