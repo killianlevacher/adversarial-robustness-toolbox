@@ -67,6 +67,7 @@ def create_ts1_art_model(min_pixel_value, max_pixel_value):
 def create_ts1_encoder_model(batch_size):
     encoder_reconstructor = EncoderReconstructor(batch_size)
     encoder_reconstructor.prepare_encoder()
+
     encoder = Tensorflow1Encoder(
         # clip_values=(min_pixel_value, max_pixel_value),
         input_ph=encoder_reconstructor.images_tensor,
@@ -79,7 +80,7 @@ def create_ts1_encoder_model(batch_size):
         # preprocessing_defences=[]
     )
 
-    return encoder
+    return encoder, encoder_reconstructor
 
 
 def create_ts1_generator_model(batch_size):
@@ -139,7 +140,11 @@ def main():
     # TODO incorporate cfg in reconstructors
 
 
-    encoder = create_ts1_encoder_model(batch_size)
+    # encoder, encoderOld = create_ts1_encoder_model(batch_size)
+
+    encoderOld = EncoderReconstructor(batch_size)
+    # encoderOld.prepare_encoder()
+    unmodified_z_value = encoderOld.generate_z_extrapolated_killian(x_train_adv)
 
     generator = create_ts1_generator_model(batch_size)
 

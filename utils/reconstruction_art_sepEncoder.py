@@ -141,6 +141,47 @@ class EncoderReconstructor(object):
 
         # return unmodified_z_value
 
+    def generate_z_extrapolated_killian(self, x_train):
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
+        sess = tf.Session(config=config)
+
+        x_shape = [28, 28, 1]
+        classes = 10
+        # x_shape, classes = list(train_images.shape[1:]), train_labels.shape[1]
+
+        # TODO use as TS1Encoder Input
+        images_tensor = tf.placeholder(tf.float32, shape=[None] + x_shape)
+        labels_tensor = tf.placeholder(tf.float32, shape=(None, classes))
+
+        ##### TODO extrapolate
+        # unmodified_z_tensor = self.generate_z(images_tensor, self.latent_dim, batch_size=self.batch_size,
+        #                                       reconstructor_id=3)
+        # generate_z(self, images, latent_dim, batch_size=None, back_prop=False, reconstructor_id=0):
+
+        images = images_tensor
+        batch_size = self.batch_size
+        latent_dim = self.latent_dim
+
+        x_shape = images.get_shape().as_list()
+        x_shape[0] = batch_size
+
+        def recon_wrap(im, b):
+            unmodified_z = self.generate_z_batch(im, b)
+            return np.array(unmodified_z, dtype=np.float32)
+
+        unmodified_z = tf.py_func(recon_wrap, [images, batch_size], [tf.float32])
+        # unmodified_z is the equivalent of all_zs/online_zs in original code WITHOUT the modifier
+
+        unmodified_z_reshaped = tf.reshape(unmodified_z, [batch_size, latent_dim])
+        # return tf.stop_gradient(unmodified_z)
+        unmodified_z_tensor =  tf.stop_gradient(unmodified_z_reshaped)
+        #####
+
+        unmodified_z_value = sess.run(unmodified_z_tensor, feed_dict={images_tensor: x_train})
+
+        return unmodified_z_value
+
     def generate_z_killian(self, x_train):
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True

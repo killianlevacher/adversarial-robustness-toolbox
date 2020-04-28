@@ -131,6 +131,12 @@ class Tensorflow1Encoder(EncoderMixin, TensorFlowEstimator):  # lgtm [py/missing
         # else:
         #     self._reduce_labels = False
 
+
+    def encode(self, image):
+        unmodified_z_value = self._sess.run(self._output, feed_dict={self._input_ph: image})
+
+        return unmodified_z_value
+
     def predict(self, x, batch_size=128, **kwargs):
         """
         Generates z from a batch of inputs
@@ -142,7 +148,10 @@ class Tensorflow1Encoder(EncoderMixin, TensorFlowEstimator):  # lgtm [py/missing
         :return: Array of predictions of shape `(num_inputs, nb_classes)`.
         :rtype: `np.ndarray`
         """
-
+        pass
+        # unmodified_z_value = self.sess.run(self.unmodified_z_tensor, feed_dict={self.images_tensor: image_adv})
+        #
+        # return unmodified_z_value
 
         # # Apply preprocessing
         # x_preprocessed, _ = self._apply_preprocessing(x, y=None, fit=False)

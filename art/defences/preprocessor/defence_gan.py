@@ -73,7 +73,9 @@ class DefenceGan(Preprocessor):
         :rtype: `np.ndarray`
         """
 
-        unmodified_z_value = self.encoder.generate_z_killian(x)
+        unmodified_z_value = self.encoder.encode(x)
+
+        # unmodified_z_value = self.encoder.generate_z_killian(x)
 
         logger.info("Encoded x into Z encoding")
 
@@ -81,10 +83,10 @@ class DefenceGan(Preprocessor):
 
         #TODO use the gradients from generate to adjust multiple times the modifier
 
-        x_defended = self.generator.generate_image_killian(unmodified_z_value)
-
-        logger.info("Generated defended x from Z encoding")
-        return x_defended
+        # x_defended = self.generator.generate_image_killian(unmodified_z_value)
+        #
+        # logger.info("Generated defended x from Z encoding")
+        # return x_defended
         # x_normalized = x - self.clip_values[0]
         # x_normalized = x_normalized / (self.clip_values[1] - self.clip_values[0])
         #
@@ -97,22 +99,25 @@ class DefenceGan(Preprocessor):
         # return res, y
 
 
-    # @property
-    # def apply_fit(self):
+    @property
+    def apply_fit(self):
+        pass
     #     return self._apply_fit
-    #
-    # @property
-    # def apply_predict(self):
+
+    @property
+    def apply_predict(self):
+        pass
     #     return self._apply_predict
 
-    # def estimate_gradient(self, x, grad):
-    #     return grad
+    def estimate_gradient(self, x, grad):
+        pass
+        # return grad
 
-    # def fit(self, x, y=None, **kwargs):
-    #     """
-    #     No parameters to learn for this method; do nothing.
-    #     """
-    #     pass
+    def fit(self, x, y=None, **kwargs):
+        """
+        No parameters to learn for this method; do nothing.
+        """
+        pass
 
     # def set_params(self, **kwargs):
     #     """
