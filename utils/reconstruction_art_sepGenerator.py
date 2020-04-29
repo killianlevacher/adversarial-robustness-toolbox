@@ -71,6 +71,10 @@ class GeneratorReconstructor(object):
 
         #TODO to include in TS1Generator
         self.image_rec_loss = tf.reduce_mean(tf.square(self.z_hats_recs - timg_tiled_rr), axis=axes)
+
+        #Killian trying a gradient calculation
+        self.grad = tf.gradients(self.image_rec_loss, modifier_killian)
+
         # rec_loss = tf.reduce_sum(self.image_rec_loss)
         #
         # # Handle random restart
@@ -112,31 +116,31 @@ class GeneratorReconstructor(object):
 
         print('Reconstruction module initialzied...\n')
 
-    def generate_z_batch(self, images, batch_size):
-        # images and batch_size are treated as numpy
-
-        self.sess.run(self.init_opt)
-        self.sess.run(self.setup, feed_dict={self.assign_timg: images})
-
-        for _ in range(self.rec_iters):
-            unmodified_z = self.sess.run([self.z_init])
-
-        return unmodified_z
-
-    def generate_z(self, images, latent_dim, batch_size=None, back_prop=False, reconstructor_id=0):
-        x_shape = images.get_shape().as_list()
-        x_shape[0] = batch_size
-
-        def recon_wrap(im, b):
-            unmodified_z = self.generate_z_batch(im, b)
-            return np.array(unmodified_z, dtype=np.float32)
-
-        unmodified_z = tf.py_func(recon_wrap, [images, batch_size], [tf.float32])
-        # unmodified_z is the equivalent of all_zs/online_zs in original code WITHOUT the modifier
-
-        unmodified_z_reshaped = tf.reshape(unmodified_z, [batch_size, latent_dim])
-        # return tf.stop_gradient(unmodified_z)
-        return tf.stop_gradient(unmodified_z_reshaped)
+    # def generate_z_batch(self, images, batch_size):
+    #     # images and batch_size are treated as numpy
+    #
+    #     self.sess.run(self.init_opt)
+    #     self.sess.run(self.setup, feed_dict={self.assign_timg: images})
+    #
+    #     for _ in range(self.rec_iters):
+    #         unmodified_z = self.sess.run([self.z_init])
+    #
+    #     return unmodified_z
+    #
+    # def generate_z(self, images, latent_dim, batch_size=None, back_prop=False, reconstructor_id=0):
+    #     x_shape = images.get_shape().as_list()
+    #     x_shape[0] = batch_size
+    #
+    #     def recon_wrap(im, b):
+    #         unmodified_z = self.generate_z_batch(im, b)
+    #         return np.array(unmodified_z, dtype=np.float32)
+    #
+    #     unmodified_z = tf.py_func(recon_wrap, [images, batch_size], [tf.float32])
+    #     # unmodified_z is the equivalent of all_zs/online_zs in original code WITHOUT the modifier
+    #
+    #     unmodified_z_reshaped = tf.reshape(unmodified_z, [batch_size, latent_dim])
+    #     # return tf.stop_gradient(unmodified_z)
+    #     return tf.stop_gradient(unmodified_z_reshaped)
 
     def generate_image_batch(self, z_init_numpy, modifier_numpy, batch_size):
         # images and batch_size are treated as numpy
@@ -201,6 +205,10 @@ class GeneratorReconstructor(object):
         self.image_generated_tensor = self.generate_image(self.z_init_input_placeholder, self.modifier_placeholder,
                                                           batch_size=self.batch_size, reconstructor_id=3)
 
+        self.image_adverse_tensor = tf.placeholder(tf.float32, shape=[self.batch_size, 28, 28, 1])
+        self.gradient_tensor = self.generate_gradient(self.z_init_input_placeholder, self.modifier_placeholder, self.image_adverse_tensor,
+                                                          batch_size=self.batch_size, reconstructor_id=3)
+
         # random_modifier = np.random.rand(self.batch_size, self.latent_dim)
         #
         # image_value = sess.run(self.image_generated_tensor,
@@ -208,7 +216,7 @@ class GeneratorReconstructor(object):
         #                                   self.modifier_placeholder: random_modifier})
 
 
-        return sess, self.image_generated_tensor, self.z_init_input_placeholder, self.modifier_placeholder
+        return sess, self.image_generated_tensor, self.z_init_input_placeholder, self.modifier_placeholder, self.gradient_tensor, self.image_adverse_tensor
         # image_value = sess.run(self.image_generated_tensor,
         #                        feed_dict={self.z_init_input_placeholder: unmodified_z_value,
         #                                   self.modifier_placeholder: random_modifier})
@@ -253,6 +261,39 @@ class GeneratorReconstructor(object):
         # all_z_recs_reshaped = all_z_recs.getshape()[2:]
         all_z_recs_reshaped =  tf.reshape(all_z_recs, [batch_size, 28,28,1])
         return tf.stop_gradient(all_z_recs_reshaped)
+
+    def generate_gradient_batch(self, z_init_numpy, modifier_numpy, images, batch_size):
+        # images and batch_size are treated as numpy
+
+        self.sess.run(self.init_opt)
+        # self.sess.run(self.setup, self.setup_z_init, self.setup_modifier_killian, feed_dict={self.assign_timg: images,
+        #                                                                                      self.z_init_input_placeholder: z_init_numpy,
+        #                                                                                      self.modifier_placeholder: modifier_numpy})
+
+        self.sess.run(self.setup_z_init, feed_dict={self.z_init_input_placeholder: z_init_numpy,
+                                                    self.modifier_placeholder: modifier_numpy})
+        self.sess.run(self.setup_modifier_killian, feed_dict={self.modifier_placeholder: modifier_numpy})
+
+        self.sess.run(self.setup, feed_dict={self.assign_timg: images})
+
+        for _ in range(self.rec_iters):
+            all_grads = self.sess.run([self.grad])
+
+        return all_grads
+
+    def generate_gradient(self, z_init_numpy, modifier_numpy, images, batch_size=None, back_prop=False, reconstructor_id=0):
+
+        def recon_wrap(z_init_numpy, modifier_numpy, images, b):
+            all_grads = self.generate_gradient_batch(z_init_numpy, modifier_numpy, images, b)
+            return np.array(all_grads, dtype=np.float32)
+
+        all_grads = tf.py_func(recon_wrap, [z_init_numpy, modifier_numpy, images, batch_size], [tf.float32])
+
+        # all_z_recs_reshaped = all_z_recs.getshape()[2:]
+        # all_z_recs_reshaped =  tf.reshape(all_z_recs, [batch_size, 28,28,1])
+        #TODO remove 128 latent hardcoded value
+        all_grads_reshaped = tf.reshape(all_grads, [batch_size*128])
+        return tf.stop_gradient(all_grads_reshaped)
 
     def reconstruct_batch(self, images, batch_size):
         # images and batch_size are treated as numpy

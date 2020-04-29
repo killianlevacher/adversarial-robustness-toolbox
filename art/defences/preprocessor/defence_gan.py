@@ -24,7 +24,8 @@ This module implements the DefenceGAN defence in `FeatureSqueezing`.
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
-
+from scipy.optimize import minimize, Bounds
+from sklearn.metrics import mean_squared_error
 import numpy as np
 
 from art.defences.preprocessor.preprocessor import Preprocessor
@@ -61,7 +62,7 @@ class DefenceGan(Preprocessor):
         # self._apply_predict = apply_predict
         # self.set_params(clip_values=clip_values, bit_depth=bit_depth)
 
-    def __call__(self, x, y=None):
+    def __call__(self, x_adv, y=None, **kwargs):
         """
         Apply DefenceGan to sample `x`.
 
@@ -72,7 +73,7 @@ class DefenceGan(Preprocessor):
         :return: Squeezed sample.
         :rtype: `np.ndarray`
         """
-        unmodified_z_value = self.encoder.encode(x)
+        unmodified_z_value = self.encoder.encode(x_adv)
 
         logger.info("Encoded x into Z encoding")
 
@@ -80,12 +81,62 @@ class DefenceGan(Preprocessor):
         latent_dim = 128  # TODO remove this
         batch_size = 50 # TODO remove this
 
-        random_modifier = np.random.rand(batch_size, latent_dim)
+        random_z0_modifier = np.random.rand(batch_size, latent_dim)
 
+        def generator_derivatives(z_i_modifier):
 
+            z_i_modifier_reshaped = np.reshape(z_i_modifier, [batch_size, latent_dim])
+            grad = self.generator.loss_gradient(unmodified_z_value, z_i_modifier_reshaped, x_adv)
 
+            grad = np.float64(grad) # scipy fortran code seems to expect float64 not 32 https://github.com/scipy/scipy/issues/5832
+            #TODO needs to return shape (n,)
+            return grad
 
-        image_projected = self.generator.project(unmodified_z_value, random_modifier)
+        def func_loss_calculation(z_i_modifier):
+            # source_representation = self.estimator.get_activations(
+            #     x=x_i.reshape(-1, *self.estimator.input_shape), layer=self.layer, batch_size=self.batch_size
+            # )
+            #
+            # n = norm(source_representation.flatten() - guide_representation.flatten(), ord=2) ** 2
+            z_i_modifier_reshaped = np.reshape(z_i_modifier, [batch_size, latent_dim])
+            image_projected = self.generator.project(unmodified_z_value, z_i_modifier_reshaped)
+
+            #TODO maybe I could simply get the loss from the ts graph here too
+
+            mse = mean_squared_error(x_adv.flatten(), image_projected.flatten())
+
+            # self.image_rec_loss = tf.reduce_mean(tf.square(self.z_hats_recs - timg_tiled_rr), axis=axes)
+
+            return mse
+
+        options = {"maxiter":1} #TODO remove that maxiter value post debugging
+
+        #TODO update these options based on the final alg I will be using
+        options_allowed_keys = [
+            "disp",
+            "maxcor",
+            "ftol",
+            "gtol",
+            "eps",
+            "maxfun",
+            "maxiter",
+            "iprint",
+            "callback",
+            "maxls",
+        ]
+
+        for key in kwargs:
+            if key not in options_allowed_keys:
+                raise KeyError(
+                    "The argument `{}` in kwargs is not allowed as option for `scipy.optimize.minimize` using "
+                    '`method="L-BFGS-B".`'.format(key)
+                )
+
+        options.update(kwargs)
+        optimized_modifier_flat = minimize(func_loss_calculation, random_z0_modifier, jac=generator_derivatives, method="L-BFGS-B", options=options)
+        optimized_modifier = np.reshape(optimized_modifier_flat.x,[batch_size,latent_dim])
+        image_projected = self.generator.project(unmodified_z_value, optimized_modifier)
+        # image_projected = self.generator.project(unmodified_z_value, random_z0_modifier)
 
         return image_projected
 

@@ -22,6 +22,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import logging
 import random
+import tensorflow as tf
 
 import numpy as np
 import six
@@ -31,27 +32,29 @@ from art.estimators.generation.generator import GeneratorMixin
 
 logger = logging.getLogger(__name__)
 
-#TODO change ClassifierMixin to EncoderMixin
+
+# TODO change ClassifierMixin to EncoderMixin
 class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/missing-call-to-init]
     """
     This class implements an encoding with the TensorFlow framework.
     """
+
     def __init__(
-        self,
-        input_z,
-        input_modifier,
-        output,
-        # labels_ph=None,
-        # train=None,
-        loss=None,
-        # learning=None,
-        sess=None,
-        # channel_index=3,
-        # clip_values=None,
-        # preprocessing_defences=None,
-        # postprocessing_defences=None,
-        # preprocessing=(0, 1),
-        feed_dict={},
+            self,
+            input_z,
+            input_modifier,
+            output,
+            image_adv=None,
+            loss=None,
+            grad=None,
+            # learning=None,
+            sess=None,
+            # channel_index=3,
+            # clip_values=None,
+            # preprocessing_defences=None,
+            # postprocessing_defences=None,
+            # preprocessing=(0, 1),
+            feed_dict={}
     ):
         """
         Initialization specific to TensorFlow models implementation.
@@ -93,8 +96,6 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
                           additionally required placeholders except the placeholders defined in this class.
         :type feed_dict: `dictionary`
         """
-        # pylint: disable=E0401
-        import tensorflow as tf
 
         super(Tensorflow1Generator, self).__init__(
             # clip_values=clip_values,
@@ -108,13 +109,17 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
         # self._input_ph = input_ph
 
         self._input_z = input_z
+        self._image_adv = image_adv
+        # TODO I think this should be removed and used as input to generate only since it is not
+        #  permanent - it could also be optional since there isn't any need to add a modifier technically
         self._input_modifier = input_modifier
-
 
         self._output = output
         # self._labels_ph = labels_ph
         # self._train = train
         self._loss = loss
+
+        self._grad = grad
         # self._learning = learning
         self._feed_dict = feed_dict
 
@@ -127,17 +132,11 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
         # Get the internal layers
         # self._layer_names = self._get_layers()
 
-        # Get the loss gradients graph
-        # if self._loss is not None:
-        #     self._loss_grads = tf.gradients(self._loss, self._input_ph)[0]
-
         # Check if the loss function requires as input index labels instead of one-hot-encoded labels
         # if len(self._labels_ph.shape) == 1:
         #     self._reduce_labels = True
         # else:
         #     self._reduce_labels = False
-
-
 
     def predict(self, unmodified_z_value, input_modifier):
         """
@@ -176,7 +175,7 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
         #
         # return predictions
 
-    def loss_gradient(self, unmodified_z_value, input_modifier, **kwargs):
+    def loss_gradient_old(self, unmodified_z_value, input_modifier, **kwargs):
         """
         Compute the gradient of the loss function w.r.t. `x`.
 
@@ -192,14 +191,24 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
         # x_preprocessed, y_preprocessed = self._apply_preprocessing(x, y, fit=False)
 
         # Check if loss available
-        if not hasattr(self, "_loss_grads") or self._loss_grads is None or self._labels_ph is None:
-            raise ValueError("Need the loss function and the labels placeholder to compute the loss gradient.")
+        # if not hasattr(self, "_loss_grads") or self._loss_grads is None:
+        #     raise ValueError("Need the loss function placeholder to compute the loss gradient.")
+
+        # Get the loss gradients graph
+        # if self._loss is not None:
+        #     TODO put this self.loss_grads back in __init__
+        # original self._loss_grads = tf.gradients(self._loss, self._input_ph)[0]
+        constant_input_z = tf.stop_gradient(self._input_z)
+        self._loss_grads = \
+        tf.gradients(self._loss, [constant_input_z, self._input_modifier], stop_gradients=[constant_input_z])[0]
+
+        # TODO initialise the input_modifier and all other input values
 
         # # Check label shape
         # if self._reduce_labels:
         #     y_preprocessed = np.argmax(y_preprocessed, axis=1)
 
-        #TODO don't put z unmodified + input_modifier
+        # TODO don't put z unmodified + input_modifier
         # X = Z and  Y = x_adv
         # Create feed_dict
         feed_dict = {self._input_z: unmodified_z_value, self._input_modifier: input_modifier}
@@ -207,9 +216,7 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
         feed_dict.update(self._feed_dict)
 
         grads = self._sess.run(self._loss_grads,
-                                     feed_dict=feed_dict)
-
-
+                               feed_dict=feed_dict)
 
         # Compute gradients
         # grads = self._sess.run(self._loss_grads, feed_dict=feed_dict)
@@ -218,17 +225,28 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
 
         return grads
 
+    def loss_gradient(self, unmodified_z_value, input_modifier, image_adv):
+        # Apply preprocessing
+        logging.info("Calculating Gradients")
+        gradients_value = self._sess.run(self._grad,
+                                         feed_dict={self._image_adv: image_adv,
+                                                    self._input_z: unmodified_z_value,
+                                                    self._input_modifier: input_modifier})
+
+        return gradients_value
+
     def project(self, unmodified_z_value, input_modifier):
         # Apply preprocessing
+        logging.info("Projecting new image from z value")
         image_value = self._sess.run(self._output,
                                      feed_dict={self._input_z: unmodified_z_value,
                                                 self._input_modifier: input_modifier})
 
         return image_value
 
-
     def fit(self, x, y, batch_size=128, nb_epochs=10, **kwargs):
         pass
+
     #     """
     #     Fit the classifier on the training set `(x, y)`.
     #
@@ -445,6 +463,7 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
 
     def get_activations(self, x, layer, batch_size=128):
         pass
+
     #     """
     #     Return the output of the specified layer for input `x`. `layer` is specified by layer index (between 0 and
     #     `nb_layers - 1`) or by name. The number of layers can be determined by counting the results returned by
