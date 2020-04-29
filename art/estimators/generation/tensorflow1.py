@@ -121,14 +121,15 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
         # Assign session
         if sess is None:
             raise ValueError("A session cannot be None.")
+            # TODO do the same thing for all not None variables
         self._sess = sess
 
         # Get the internal layers
         # self._layer_names = self._get_layers()
 
         # Get the loss gradients graph
-        if self._loss is not None:
-            self._loss_grads = tf.gradients(self._loss, self._input_ph)[0]
+        # if self._loss is not None:
+        #     self._loss_grads = tf.gradients(self._loss, self._input_ph)[0]
 
         # Check if the loss function requires as input index labels instead of one-hot-encoded labels
         # if len(self._labels_ph.shape) == 1:
