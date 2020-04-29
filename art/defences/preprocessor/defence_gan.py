@@ -76,9 +76,15 @@ class DefenceGan(Preprocessor):
 
         logger.info("Encoded x into Z encoding")
 
+
         latent_dim = 128  # TODO remove this
         batch_size = 50 # TODO remove this
+
         random_modifier = np.random.rand(batch_size, latent_dim)
+
+
+
+
         image_projected = self.generator.project(unmodified_z_value, random_modifier)
 
         return image_projected

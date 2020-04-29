@@ -127,8 +127,8 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
         # self._layer_names = self._get_layers()
 
         # Get the loss gradients graph
-        # if self._loss is not None:
-        #     self._loss_grads = tf.gradients(self._loss, self._input_ph)[0]
+        if self._loss is not None:
+            self._loss_grads = tf.gradients(self._loss, self._input_ph)[0]
 
         # Check if the loss function requires as input index labels instead of one-hot-encoded labels
         # if len(self._labels_ph.shape) == 1:
@@ -136,13 +136,7 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
         # else:
         #     self._reduce_labels = False
 
-    def project(self, unmodified_z_value, input_modifier):
-        # Apply preprocessing
-        image_value = self._sess.run(self._output,
-                               feed_dict={self._input_z: unmodified_z_value,
-                                          self._input_modifier: input_modifier})
 
-        return image_value
 
     def predict(self, unmodified_z_value, input_modifier):
         """
@@ -181,11 +175,7 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
         #
         # return predictions
 
-
-
-
-
-    def loss_gradient(self, x, y, **kwargs):
+    def loss_gradient(self, unmodified_z_value, input_modifier, **kwargs):
         """
         Compute the gradient of the loss function w.r.t. `x`.
 
@@ -198,26 +188,42 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
         :rtype: `np.ndarray`
         """
         # Apply preprocessing
-        x_preprocessed, y_preprocessed = self._apply_preprocessing(x, y, fit=False)
+        # x_preprocessed, y_preprocessed = self._apply_preprocessing(x, y, fit=False)
 
         # Check if loss available
         if not hasattr(self, "_loss_grads") or self._loss_grads is None or self._labels_ph is None:
             raise ValueError("Need the loss function and the labels placeholder to compute the loss gradient.")
 
-        # Check label shape
-        if self._reduce_labels:
-            y_preprocessed = np.argmax(y_preprocessed, axis=1)
+        # # Check label shape
+        # if self._reduce_labels:
+        #     y_preprocessed = np.argmax(y_preprocessed, axis=1)
 
+        #TODO don't put z unmodified + input_modifier
+        # X = Z and  Y = x_adv
         # Create feed_dict
-        feed_dict = {self._input_ph: x_preprocessed, self._labels_ph: y_preprocessed}
+        feed_dict = {self._input_z: unmodified_z_value, self._input_modifier: input_modifier}
+        # feed_dict = {self._input_ph: x_preprocessed, self._labels_ph: y_preprocessed}
         feed_dict.update(self._feed_dict)
 
+        grads = self._sess.run(self._loss_grads,
+                                     feed_dict=feed_dict)
+
+
+
         # Compute gradients
-        grads = self._sess.run(self._loss_grads, feed_dict=feed_dict)
-        grads = self._apply_preprocessing_gradient(x, grads)
-        assert grads.shape == x_preprocessed.shape
+        # grads = self._sess.run(self._loss_grads, feed_dict=feed_dict)
+        # grads = self._apply_preprocessing_gradient(x, grads)
+        # assert grads.shape == x_preprocessed.shape
 
         return grads
+
+    def project(self, unmodified_z_value, input_modifier):
+        # Apply preprocessing
+        image_value = self._sess.run(self._output,
+                                     feed_dict={self._input_z: unmodified_z_value,
+                                                self._input_modifier: input_modifier})
+
+        return image_value
 
 
     def fit(self, x, y, batch_size=128, nb_epochs=10, **kwargs):
