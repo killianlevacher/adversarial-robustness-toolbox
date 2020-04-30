@@ -133,12 +133,6 @@ class GeneratorReconstructor(object):
 
     def generate_image_killian_extrapolated_good(self):
 
-        # config = tf.ConfigProto()
-        # config.gpu_options.allow_growth = True
-        # sess = tf.Session(config=config)
-
-
-
         def recon_wrap(z_init_input_placeholder, modifier_placeholder, b):
             # z_recs = self.generate_image_batch_good(z_init_numpy, modifier_numpy, b)
             for _ in range(self.rec_iters):
@@ -155,34 +149,10 @@ class GeneratorReconstructor(object):
 
 
         self.image_generated_tensor = tf.stop_gradient(all_z_recs_reshaped)
-        # self.image_generated_tensor, self.image_rec_loss_test = self.generate_image_tensor_good(self.z_init_input_placeholder, self.modifier_placeholder,
-        #                                                               batch_size=self.batch_size, reconstructor_id=3)
-
-        #Killian Test
-        # all_z_recs_reshaped = all_z_recs.getshape()[2:]
-        # all_z_recs_reshaped = tf.reshape(self.z_hats_recs, [self.batch_size, 28, 28, 1])
-        # self.image_generated_tensor =  tf.stop_gradient(all_z_recs_reshaped)
 
 
-        # self.image_generated_tensor = self.z_hats_recs
+        return self.image_generated_tensor
 
-        # self.image_adverse_placeholder = tf.placeholder(tf.float32, shape=[self.batch_size, 28, 28, 1], name="image_adverse_placeholder")
-        self.gradient_tensor = self.generate_gradient_tensor_good(self.z_init_input_placeholder, self.modifier_placeholder, self.image_adverse_placeholder,
-                                                                  batch_size=self.batch_size, reconstructor_id=3)
-
-        # random_modifier = np.random.rand(self.batch_size, self.latent_dim)
-        #
-        # image_value = sess.run(self.image_generated_tensor,
-        #                        feed_dict={self.z_init_input_placeholder: unmodified_z_value,
-        #                                   self.modifier_placeholder: random_modifier})
-
-
-        return self.image_generated_tensor, self.z_init_input_placeholder, self.modifier_placeholder, self.gradient_tensor, self.image_adverse_placeholder
-        # image_value = sess.run(self.image_generated_tensor,
-        #                        feed_dict={self.z_init_input_placeholder: unmodified_z_value,
-        #                                   self.modifier_placeholder: random_modifier})
-        #
-        # return image_value
 
 
     # def generate_image_batch_good(self, z_init_numpy, modifier_numpy, batch_size):

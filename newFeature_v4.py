@@ -140,34 +140,36 @@ def main():
 
 
     ####### TEST
-    generator_reconstructor = GeneratorReconstructor(batch_size)
+    generator = GeneratorReconstructor(batch_size)
 
+
+
+
+    image_generated_tensor = generator.generate_image_killian_extrapolated_good()
 
     random_z0_modifier = np.random.rand(50, 128)
-
-    image_generated_tensor, z_init_input_placeholder, modifier_placeholder, gradient_tensor, image_adverse_tensor = generator_reconstructor.generate_image_killian_extrapolated_good()
-    test_result = generator_reconstructor.sess.run(image_generated_tensor,
-                               feed_dict={generator_reconstructor.image_adverse_placeholder: x_train_adv,
-                                          generator_reconstructor.z_init_input_placeholder: random_z0_modifier,
-                                          generator_reconstructor.modifier_placeholder: random_z0_modifier})
+    test_result = generator.sess.run(image_generated_tensor,
+                               feed_dict={generator.image_adverse_placeholder: x_train_adv,
+                                          generator.z_init_input_placeholder: random_z0_modifier,
+                                          generator.modifier_placeholder: random_z0_modifier})
 
 
-    gradient_tensor = generator_reconstructor.generate_gradient_tensor_good(generator_reconstructor.z_init_input_placeholder,
-                                                                            generator_reconstructor.modifier_placeholder,
-                                                                            generator_reconstructor.image_adverse_placeholder,
-                                                                            batch_size=generator_reconstructor.batch_size,
-                                                                            reconstructor_id=3)
+    gradient_tensor = generator.generate_gradient_tensor_good(generator.z_init_input_placeholder,
+                                                              generator.modifier_placeholder,
+                                                              generator.image_adverse_placeholder,
+                                                              batch_size=generator.batch_size,
+                                                              reconstructor_id=3)
 
-    gradients_value = generator_reconstructor.sess.run(gradient_tensor,
-                               feed_dict={generator_reconstructor.image_adverse_placeholder: x_train_adv,
-                                          generator_reconstructor.z_init_input_placeholder: random_z0_modifier,
-                                          generator_reconstructor.modifier_placeholder: random_z0_modifier})
+    gradients_value = generator.sess.run(gradient_tensor,
+                               feed_dict={generator.image_adverse_placeholder: x_train_adv,
+                                          generator.z_init_input_placeholder: random_z0_modifier,
+                                          generator.modifier_placeholder: random_z0_modifier})
 
 
-    result = generator_reconstructor.sess.run(generator_reconstructor.z_hats_recs,
-                               feed_dict={generator_reconstructor.image_adverse_placeholder: x_train_adv,
-                                          generator_reconstructor.z_init_input_placeholder: random_z0_modifier,
-                                          generator_reconstructor.modifier_placeholder: random_z0_modifier})
+    result = generator.sess.run(generator.z_hats_recs,
+                               feed_dict={generator.image_adverse_placeholder: x_train_adv,
+                                          generator.z_init_input_placeholder: random_z0_modifier,
+                                          generator.modifier_placeholder: random_z0_modifier})
 
     ######## STEP 5 Create Encoder and Generator
 
