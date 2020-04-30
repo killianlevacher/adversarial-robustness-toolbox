@@ -127,59 +127,6 @@ class GeneratorReconstructor(object):
 
         print('Reconstruction module initialzied...\n')
 
-    # def generate_z_batch(self, images, batch_size):
-    #     # images and batch_size are treated as numpy
-    #
-    #     self.sess.run(self.init_opt)
-    #     self.sess.run(self.setup, feed_dict={self.assign_timg: images})
-    #
-    #     for _ in range(self.rec_iters):
-    #         unmodified_z = self.sess.run([self.z_init])
-    #
-    #     return unmodified_z
-    #
-    # def generate_z(self, images, latent_dim, batch_size=None, back_prop=False, reconstructor_id=0):
-    #     x_shape = images.get_shape().as_list()
-    #     x_shape[0] = batch_size
-    #
-    #     def recon_wrap(im, b):
-    #         unmodified_z = self.generate_z_batch(im, b)
-    #         return np.array(unmodified_z, dtype=np.float32)
-    #
-    #     unmodified_z = tf.py_func(recon_wrap, [images, batch_size], [tf.float32])
-    #     # unmodified_z is the equivalent of all_zs/online_zs in original code WITHOUT the modifier
-    #
-    #     unmodified_z_reshaped = tf.reshape(unmodified_z, [batch_size, latent_dim])
-    #     # return tf.stop_gradient(unmodified_z)
-    #     return tf.stop_gradient(unmodified_z_reshaped)
-
-
-
-    def prepare(self):
-        #TODO merge with init
-        config = tf.ConfigProto()
-        config.gpu_options.allow_growth = True
-        self.sess = tf.Session(config=config)
-
-        # z_init_input_placeholder = tf.placeholder(tf.float32, shape=[1,1,cfg["BATCH_SIZE"],latent_dim], name='z_init_input_placeholder1')
-
-        #TODO use as TS1Generator Input1
-        self.z_init_input_placeholder = tf.placeholder(tf.float32, shape=[self.batch_size, self.latent_dim],
-                                                  name='z_init_input_placeholder1')
-
-        # TODO use as TS1Generator Input2
-        self.modifier_placeholder = tf.placeholder(tf.float32, shape=[self.batch_size, self.latent_dim],
-                                              name='z_modifier_placeholder1')
-
-        self.image_generated_tensor = self.generate_image_good(self.z_init_input_placeholder, self.modifier_placeholder,
-                                                               batch_size=self.batch_size, reconstructor_id=3)
-
-        random_modifier = np.random.rand(self.batch_size, self.latent_dim)
-
-        # image_value = sess.run(self.image_generated_tensor, feed_dict={self.z_init_input_placeholder: unmodified_z_value,
-        #                                                 self.modifier_placeholder: random_modifier})
-
-        # return image_value
 
     def generate_image_killian_extrapolated_good(self):
 
@@ -237,36 +184,16 @@ class GeneratorReconstructor(object):
 
         return all_z_recs
 
-    # def generate_image_killian(self, unmodified_z_value):
-    #
-    #     config = tf.ConfigProto()
-    #     config.gpu_options.allow_growth = True
-    #     sess = tf.Session(config=config)
-    #
-    #     # z_init_input_placeholder = tf.placeholder(tf.float32, shape=[1,1,cfg["BATCH_SIZE"],latent_dim], name='z_init_input_placeholder1')
-    #
-    #     #TODO use as TS1Generator Input1
-    #     # self.z_init_input_placeholder = tf.placeholder(tf.float32, shape=[self.batch_size, self.latent_dim],
-    #     #                                           name='z_init_input_placeholder1')
-    #
-    #     # TODO use as TS1Generator Input2
-    #     # self.modifier_placeholder = tf.placeholder(tf.float32, shape=[self.batch_size, self.latent_dim],
-    #     #                                       name='z_modifier_placeholder1')
-    #
-    #     self.image_generated_tensor = self.generate_image_good(self.z_init_input_placeholder, self.modifier_placeholder,
-    #                                                            batch_size=self.batch_size, reconstructor_id=3)
-    #
-    #     random_modifier = np.random.rand(self.batch_size, self.latent_dim)
-    #
-    #     image_value = sess.run(self.image_generated_tensor, feed_dict={self.z_init_input_placeholder: unmodified_z_value,
-    #                                                     self.modifier_placeholder: random_modifier})
-    #
-    #     return image_value
+
 
     def generate_image_good(self, z_init_numpy, modifier_numpy, batch_size=None, back_prop=False, reconstructor_id=0):
 
         def recon_wrap(z_init_numpy, modifier_numpy, b):
-            z_recs = self.generate_image_batch_good(z_init_numpy, modifier_numpy, b)
+            # z_recs = self.generate_image_batch_good(z_init_numpy, modifier_numpy, b)
+            for _ in range(self.rec_iters):
+                all_z_recs = self.sess.run([self.z_hats_recs], feed_dict={self.z_init_input_placeholder: z_init_numpy,
+                                                                          self.modifier_placeholder: modifier_numpy})
+            z_recs = all_z_recs
             return np.array(z_recs, dtype=np.float32)
 
         all_z_recs = tf.py_func(recon_wrap, [z_init_numpy, modifier_numpy, batch_size], [tf.float32])
@@ -274,6 +201,8 @@ class GeneratorReconstructor(object):
         # all_z_recs_reshaped = all_z_recs.getshape()[2:]
         all_z_recs_reshaped =  tf.reshape(all_z_recs, [batch_size, 28,28,1])
         return tf.stop_gradient(all_z_recs_reshaped)
+
+
 
     def generate_gradient_batch_good(self, z_init_numpy, modifier_numpy, images, batch_size):
         # images and batch_size are treated as numpy
@@ -310,6 +239,89 @@ class GeneratorReconstructor(object):
         #TODO remove 128 latent hardcoded value
         all_grads_reshaped = tf.reshape(all_grads, [batch_size*128])
         return tf.stop_gradient(all_grads_reshaped)
+
+
+
+    # def generate_z_batch(self, images, batch_size):
+    #     # images and batch_size are treated as numpy
+    #
+    #     self.sess.run(self.init_opt)
+    #     self.sess.run(self.setup, feed_dict={self.assign_timg: images})
+    #
+    #     for _ in range(self.rec_iters):
+    #         unmodified_z = self.sess.run([self.z_init])
+    #
+    #     return unmodified_z
+    #
+    # def generate_z(self, images, latent_dim, batch_size=None, back_prop=False, reconstructor_id=0):
+    #     x_shape = images.get_shape().as_list()
+    #     x_shape[0] = batch_size
+    #
+    #     def recon_wrap(im, b):
+    #         unmodified_z = self.generate_z_batch(im, b)
+    #         return np.array(unmodified_z, dtype=np.float32)
+    #
+    #     unmodified_z = tf.py_func(recon_wrap, [images, batch_size], [tf.float32])
+    #     # unmodified_z is the equivalent of all_zs/online_zs in original code WITHOUT the modifier
+    #
+    #     unmodified_z_reshaped = tf.reshape(unmodified_z, [batch_size, latent_dim])
+    #     # return tf.stop_gradient(unmodified_z)
+    #     return tf.stop_gradient(unmodified_z_reshaped)
+
+
+
+    # def prepare(self):
+    #     #TODO merge with init
+    #     config = tf.ConfigProto()
+    #     config.gpu_options.allow_growth = True
+    #     self.sess = tf.Session(config=config)
+    #
+    #     # z_init_input_placeholder = tf.placeholder(tf.float32, shape=[1,1,cfg["BATCH_SIZE"],latent_dim], name='z_init_input_placeholder1')
+    #
+    #     #TODO use as TS1Generator Input1
+    #     self.z_init_input_placeholder = tf.placeholder(tf.float32, shape=[self.batch_size, self.latent_dim],
+    #                                               name='z_init_input_placeholder1')
+    #
+    #     # TODO use as TS1Generator Input2
+    #     self.modifier_placeholder = tf.placeholder(tf.float32, shape=[self.batch_size, self.latent_dim],
+    #                                           name='z_modifier_placeholder1')
+    #
+    #     self.image_generated_tensor = self.generate_image_good(self.z_init_input_placeholder, self.modifier_placeholder,
+    #                                                            batch_size=self.batch_size, reconstructor_id=3)
+    #
+    #     random_modifier = np.random.rand(self.batch_size, self.latent_dim)
+    #
+    #     # image_value = sess.run(self.image_generated_tensor, feed_dict={self.z_init_input_placeholder: unmodified_z_value,
+    #     #                                                 self.modifier_placeholder: random_modifier})
+    #
+    #     # return image_value
+
+    # def generate_image_killian(self, unmodified_z_value):
+    #
+    #     config = tf.ConfigProto()
+    #     config.gpu_options.allow_growth = True
+    #     sess = tf.Session(config=config)
+    #
+    #     # z_init_input_placeholder = tf.placeholder(tf.float32, shape=[1,1,cfg["BATCH_SIZE"],latent_dim], name='z_init_input_placeholder1')
+    #
+    #     #TODO use as TS1Generator Input1
+    #     # self.z_init_input_placeholder = tf.placeholder(tf.float32, shape=[self.batch_size, self.latent_dim],
+    #     #                                           name='z_init_input_placeholder1')
+    #
+    #     # TODO use as TS1Generator Input2
+    #     # self.modifier_placeholder = tf.placeholder(tf.float32, shape=[self.batch_size, self.latent_dim],
+    #     #                                       name='z_modifier_placeholder1')
+    #
+    #     self.image_generated_tensor = self.generate_image_good(self.z_init_input_placeholder, self.modifier_placeholder,
+    #                                                            batch_size=self.batch_size, reconstructor_id=3)
+    #
+    #     random_modifier = np.random.rand(self.batch_size, self.latent_dim)
+    #
+    #     image_value = sess.run(self.image_generated_tensor, feed_dict={self.z_init_input_placeholder: unmodified_z_value,
+    #                                                     self.modifier_placeholder: random_modifier})
+    #
+    #     return image_value
+
 
 
     # def generate_gradient2(self, z_init_numpy, modifier_numpy, images, batch_size=None, back_prop=False, reconstructor_id=0):
