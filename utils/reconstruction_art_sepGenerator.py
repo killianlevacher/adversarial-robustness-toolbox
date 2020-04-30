@@ -339,31 +339,31 @@ class GeneratorReconstructor(object):
     #     all_grads_reshaped = tf.reshape(all_grads, [batch_size*128])
     #     return tf.stop_gradient(all_grads_reshaped)
 
-    def reconstruct_batch(self, images, batch_size):
-        # images and batch_size are treated as numpy
-
-        self.sess.run(self.init_opt)
-        self.sess.run(self.setup, feed_dict={self.assign_timg: images})
-
-        for _ in range(self.rec_iters):
-            _, online_image_rec_loss, all_z_recs, all_zs = self.sess.run([self.train_op, self.image_rec_loss, self.online_rec,
-                                                                          self.online_zs])
-
-        return online_image_rec_loss, all_z_recs, all_zs
-
-    def reconstruct(self, images, batch_size=None, back_prop=False, reconstructor_id=0):
-        x_shape = images.get_shape().as_list()
-        x_shape[0] = batch_size
-
-        def recon_wrap(im, b):
-            image_rec_loss, z_recs, zs = self.reconstruct_batch(im, b)
-            return np.array(image_rec_loss), np.array(z_recs, dtype=np.float32), np.array(zs, dtype=np.float32)
-
-        online_image_rec_loss, all_z_recs, all_zs = tf.py_func(recon_wrap, [images, batch_size],
-                                                               [tf.float32, tf.float32, tf.float32])
-        all_z_recs.set_shape(x_shape)
-
-        return tf.stop_gradient(all_z_recs), tf.stop_gradient(all_zs)
+    # def reconstruct_batch(self, images, batch_size):
+    #     # images and batch_size are treated as numpy
+    #
+    #     self.sess.run(self.init_opt)
+    #     self.sess.run(self.setup, feed_dict={self.assign_timg: images})
+    #
+    #     for _ in range(self.rec_iters):
+    #         _, online_image_rec_loss, all_z_recs, all_zs = self.sess.run([self.train_op, self.image_rec_loss, self.online_rec,
+    #                                                                       self.online_zs])
+    #
+    #     return online_image_rec_loss, all_z_recs, all_zs
+    #
+    # def reconstruct(self, images, batch_size=None, back_prop=False, reconstructor_id=0):
+    #     x_shape = images.get_shape().as_list()
+    #     x_shape[0] = batch_size
+    #
+    #     def recon_wrap(im, b):
+    #         image_rec_loss, z_recs, zs = self.reconstruct_batch(im, b)
+    #         return np.array(image_rec_loss), np.array(z_recs, dtype=np.float32), np.array(zs, dtype=np.float32)
+    #
+    #     online_image_rec_loss, all_z_recs, all_zs = tf.py_func(recon_wrap, [images, batch_size],
+    #                                                            [tf.float32, tf.float32, tf.float32])
+    #     all_z_recs.set_shape(x_shape)
+    #
+    #     return tf.stop_gradient(all_z_recs), tf.stop_gradient(all_zs)
 
 
 def reconstruct_dataset(gan_model, ckpt_path=None, max_num=-1, max_num_load=-1):
