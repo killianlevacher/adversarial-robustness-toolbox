@@ -85,22 +85,22 @@ def create_ts1_encoder_model(batch_size):
 
 
 def create_ts1_generator_model(batch_size):
-    generator_reconstructor = GeneratorReconstructor(batch_size)
-
-    sess, image_generated_tensor, image_rec_loss_test, z_init_input_placeholder, modifier_placeholder, gradient_tensor, image_adverse_tensor = generator_reconstructor.generate_image_projected_tensor()
+    generator = GeneratorReconstructor(batch_size)
+    generator.sess.run(generator.init_opt)
+    # sess, image_generated_tensor, image_rec_loss_test, z_init_input_placeholder, modifier_placeholder, gradient_tensor, image_adverse_tensor = generator_reconstructor.generate_image_projected_tensor()
 
     generator = Tensorflow1Generator(
         # clip_values=(min_pixel_value, max_pixel_value),
-        input_z=z_init_input_placeholder,
-        input_modifier=modifier_placeholder,
-        output=image_generated_tensor,
+        input_z=generator.z_init_input_placeholder,
+        input_modifier=generator.modifier_placeholder,
+        output=generator.z_hats_recs,
         # labels_ph=labels_ph,
         # train=train,
-        loss=generator_reconstructor.image_rec_loss,
-        image_adv=image_adverse_tensor,
-        grad=gradient_tensor,
+        loss=generator.image_rec_loss,
+        image_adv=generator.image_adverse_placeholder,
+        # grad=gradient_tensor,
         # learning=None,
-        sess=sess,
+        sess=generator.sess,
         # preprocessing_defences=[]
     )
 
@@ -159,10 +159,16 @@ def main():
     #                                                      batch_size=generator.batch_size,
     #                                                      reconstructor_id=3)
 
-    gradients_value = generator.sess.run(generator.grad,
-                               feed_dict={generator.image_adverse_placeholder: x_train_adv,
-                                          generator.z_init_input_placeholder: random_z0_modifier,
-                                          generator.modifier_placeholder: random_z0_modifier})
+
+    result = generator.sess.run(generator.image_rec_loss,
+                                feed_dict={generator.image_adverse_placeholder: x_train_adv,
+                                           generator.z_init_input_placeholder: random_z0_modifier,
+                                           generator.modifier_placeholder: random_z0_modifier})
+
+    # gradients_value = generator.sess.run(generator._new_grad,
+    #                            feed_dict={generator.image_adverse_placeholder: x_train_adv,
+    #                                       generator.z_init_input_placeholder: random_z0_modifier,
+    #                                       generator.modifier_placeholder: random_z0_modifier})
 
 
     result = generator.sess.run(generator.z_hats_recs,

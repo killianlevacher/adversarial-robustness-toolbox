@@ -130,6 +130,7 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
         self._sess = sess
 
         self._new_grad = tf.gradients(self._loss, self._input_modifier)
+
         # Get the internal layers
         # self._layer_names = self._get_layers()
 
@@ -237,6 +238,7 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
                                          feed_dict={self._image_adv: image_adv,
                                                     self._input_z: unmodified_z_value,
                                                     self._input_modifier: input_modifier})
+
 
         return gradients_value
 

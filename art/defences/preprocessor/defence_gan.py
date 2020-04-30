@@ -86,13 +86,13 @@ class DefenceGan(Preprocessor):
         def generator_derivatives(z_i_modifier):
 
             z_i_modifier_reshaped = np.reshape(z_i_modifier, [batch_size, latent_dim])
-            grad = self.generator.loss_gradient(unmodified_z_value, z_i_modifier_reshaped, x_adv)
-            # grad = self.generator.new_loss_gradient(unmodified_z_value, z_i_modifier_reshaped, x_adv)
+            # grad = self.generator.loss_gradient(unmodified_z_value, z_i_modifier_reshaped, x_adv)
+            grad = self.generator.new_loss_gradient(unmodified_z_value, z_i_modifier_reshaped, x_adv)
 
 
             grad = np.float64(grad) # scipy fortran code seems to expect float64 not 32 https://github.com/scipy/scipy/issues/5832
             #TODO needs to return shape (n,)
-            return grad
+            return grad.flatten()
 
         def func_loss_calculation(z_i_modifier):
             # source_representation = self.estimator.get_activations(
