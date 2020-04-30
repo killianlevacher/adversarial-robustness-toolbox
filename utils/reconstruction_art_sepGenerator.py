@@ -133,19 +133,10 @@ class GeneratorReconstructor(object):
 
     def generate_image_killian_extrapolated_good(self):
 
-        config = tf.ConfigProto()
-        config.gpu_options.allow_growth = True
-        sess = tf.Session(config=config)
+        # config = tf.ConfigProto()
+        # config.gpu_options.allow_growth = True
+        # sess = tf.Session(config=config)
 
-        # z_init_input_placeholder = tf.placeholder(tf.float32, shape=[1,1,cfg["BATCH_SIZE"],latent_dim], name='z_init_input_placeholder1')
-
-        # # TODO use as TS1Generator Input1
-        # self.z_init_input_placeholder = tf.placeholder(tf.float32, shape=[self.batch_size, self.latent_dim],
-        #                                                name='z_init_input_placeholder1')
-        #
-        # # TODO use as TS1Generator Input2
-        # self.modifier_placeholder = tf.placeholder(tf.float32, shape=[self.batch_size, self.latent_dim],
-        #                                            name='z_modifier_placeholder1')
 
 
         def recon_wrap(z_init_input_placeholder, modifier_placeholder, b):
@@ -186,7 +177,7 @@ class GeneratorReconstructor(object):
         #                                   self.modifier_placeholder: random_modifier})
 
 
-        return sess, self.image_generated_tensor, self.z_init_input_placeholder, self.modifier_placeholder, self.gradient_tensor, self.image_adverse_placeholder
+        return self.image_generated_tensor, self.z_init_input_placeholder, self.modifier_placeholder, self.gradient_tensor, self.image_adverse_placeholder
         # image_value = sess.run(self.image_generated_tensor,
         #                        feed_dict={self.z_init_input_placeholder: unmodified_z_value,
         #                                   self.modifier_placeholder: random_modifier})
