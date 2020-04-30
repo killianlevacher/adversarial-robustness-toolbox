@@ -87,7 +87,7 @@ def create_ts1_encoder_model(batch_size):
 def create_ts1_generator_model(batch_size):
     generator_reconstructor = GeneratorReconstructor(batch_size)
 
-    sess, image_generated_tensor, z_init_input_placeholder, modifier_placeholder, gradient_tensor, image_adverse_tensor = generator_reconstructor.generate_image_killian_extrapolated()
+    sess, image_generated_tensor, z_init_input_placeholder, modifier_placeholder, gradient_tensor, image_adverse_tensor = generator_reconstructor.generate_image_killian_extrapolated_good()
 
     generator = Tensorflow1Generator(
         # clip_values=(min_pixel_value, max_pixel_value),
