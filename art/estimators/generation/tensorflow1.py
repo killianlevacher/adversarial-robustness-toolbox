@@ -129,6 +129,7 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
             # TODO do the same thing for all not None variables
         self._sess = sess
 
+        self._new_grad = tf.gradients(self._loss, self._input_modifier)
         # Get the internal layers
         # self._layer_names = self._get_layers()
 
@@ -175,7 +176,7 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
         #
         # return predictions
 
-    def loss_gradient_old(self, unmodified_z_value, input_modifier, **kwargs):
+    def loss_gradient_deprecated(self, unmodified_z_value, input_modifier, **kwargs):
         """
         Compute the gradient of the loss function w.r.t. `x`.
 
@@ -225,6 +226,20 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
 
         return grads
 
+
+    def new_loss_gradient(self, unmodified_z_value, input_modifier, image_adv):
+        # Apply preprocessing
+        logging.info("Calculating Gradients")
+
+        # self._new_grad = tf.gradients(self._loss, self._input_modifier)
+
+        gradients_value = self._sess.run(self._new_grad,
+                                         feed_dict={self._image_adv: image_adv,
+                                                    self._input_z: unmodified_z_value,
+                                                    self._input_modifier: input_modifier})
+
+        return gradients_value
+
     def loss_gradient(self, unmodified_z_value, input_modifier, image_adv):
         # Apply preprocessing
         logging.info("Calculating Gradients")
@@ -233,7 +248,10 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
                                                     self._input_z: unmodified_z_value,
                                                     self._input_modifier: input_modifier})
 
+
         return gradients_value
+
+
 
     def project(self, unmodified_z_value, input_modifier):
         # Apply preprocessing

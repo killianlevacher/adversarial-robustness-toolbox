@@ -87,6 +87,8 @@ class DefenceGan(Preprocessor):
 
             z_i_modifier_reshaped = np.reshape(z_i_modifier, [batch_size, latent_dim])
             grad = self.generator.loss_gradient(unmodified_z_value, z_i_modifier_reshaped, x_adv)
+            # grad = self.generator.new_loss_gradient(unmodified_z_value, z_i_modifier_reshaped, x_adv)
+
 
             grad = np.float64(grad) # scipy fortran code seems to expect float64 not 32 https://github.com/scipy/scipy/issues/5832
             #TODO needs to return shape (n,)

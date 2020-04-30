@@ -29,12 +29,17 @@ class GeneratorReconstructor(object):
         self.rec_iters = gan.rec_iters
 
         x_shape = [self.batch_size] + image_dim
-        timg = tf.Variable(np.zeros(x_shape), dtype=tf.float32, name='timg')
+        #Killian original variable being assigned timg = tf.Variable(np.zeros(x_shape), dtype=tf.float32, name='timg')
 
-        timg_tiled_rr = tf.reshape(timg, [x_shape[0], np.prod(x_shape[1:])])
+        self.assign_timg = tf.placeholder(tf.float32, x_shape, name='assign_timg')
+        timg_tiled_rr = tf.reshape(self.assign_timg, [x_shape[0], np.prod(x_shape[1:])])
+        # timg_tiled_rr = tf.reshape(timg, [x_shape[0], np.prod(x_shape[1:])])
         timg_tiled_rr = tf.tile(timg_tiled_rr, [1, rec_rr])
         timg_tiled_rr = tf.reshape(
             timg_tiled_rr, [x_shape[0] * rec_rr] + x_shape[1:])
+
+        #TODO this is where the difference between Invert and Defence Gan happens -
+        # in the case of just defenceGan, the encoder is ignored and Z is randomly initialised
 
         if isinstance(gan, InvertorDefenseGAN):
             # DefenseGAN++
@@ -47,19 +52,27 @@ class GeneratorReconstructor(object):
                                  dtype=tf.float32,
                                  name='z_init_rec')
 
-        modifier_killian = tf.Variable(np.zeros([self.batch_size,self.latent_dim]), dtype=tf.float32, name='modifier_killian')
+        self.modifier_placeholder = tf.placeholder(tf.float32, shape=[self.batch_size, self.latent_dim],
+                                                   name='z_modifier_placeholder')
+        #Killian original variable being assigned modifier_killian = tf.Variable(np.zeros([self.batch_size,self.latent_dim]), dtype=tf.float32, name='modifier_killian')
 
         # z_init = tf.Variable(np.zeros([1, 1, batch_size, latent_dim]), dtype=tf.float32, name='z_init')
         # z_init_reshaped = tf.reshape(z_init, [batch_size, latent_dim])
-        z_init = tf.Variable(np.zeros([self.batch_size, self.latent_dim]), dtype=tf.float32, name='z_init')
-        z_init_reshaped = z_init
+        #Killian original variable being assigned z_init = tf.Variable(np.zeros([self.batch_size, self.latent_dim]), dtype=tf.float32, name='z_init')
+        # z_init_reshaped = z_init
+
+        self.z_init_input_placeholder = tf.placeholder(tf.float32, shape=[self.batch_size, self.latent_dim],
+                                                       name='z_init_input_placeholderK')
+        z_init_reshaped = self.z_init_input_placeholder
 
         # Define optimization #Killian this is where the delta applied to z_init is created
         # modifier = tf.Variable(np.zeros((batch_size * rec_rr, latent_dim)), dtype=tf.float32, name='z_modifier')
 
         #
         # z_init_input_reshaped_placeholder = tf.reshape(self.z_init_input_placeholder, [batch_size,latent_dim])
-        self.z_hats_recs = gan.generator_fn(z_init_reshaped + modifier_killian, is_training=False)
+
+        #TODO I should simply remove z_init and modifier and combine them into one
+        self.z_hats_recs = gan.generator_fn(z_init_reshaped + self.modifier_placeholder, is_training=False)
         tmp = ""
         #original self.z_hats_recs = gan.generator_fn(self.z_init + modifier, is_training=False)
 
@@ -73,7 +86,7 @@ class GeneratorReconstructor(object):
         self.image_rec_loss = tf.reduce_mean(tf.square(self.z_hats_recs - timg_tiled_rr), axis=axes)
 
         #Killian trying a gradient calculation
-        self.grad = tf.gradients(self.image_rec_loss, modifier_killian)
+        self.grad = tf.gradients(self.image_rec_loss, self.modifier_placeholder)
 
         # rec_loss = tf.reduce_sum(self.image_rec_loss)
         #
@@ -100,15 +113,13 @@ class GeneratorReconstructor(object):
         #
 
         #TODO I don't think we need the assign and timg variables anymore
-        self.assign_timg = tf.placeholder(tf.float32, x_shape, name='assign_timg')
-        self.z_init_input_placeholder = tf.placeholder(tf.float32, shape=[self.batch_size, self.latent_dim],
-                                                       name='z_init_input_placeholderK')
-        self.modifier_placeholder = tf.placeholder(tf.float32, shape=[self.batch_size, self.latent_dim],
-                                                   name='z_modifier_placeholder')
 
-        self.setup = tf.assign(timg, self.assign_timg)
-        self.setup_z_init = tf.assign(z_init, self.z_init_input_placeholder)
-        self.setup_modifier_killian = tf.assign(modifier_killian, self.modifier_placeholder)
+
+
+
+        # self.setup = tf.assign(timg, self.assign_timg)
+        # self.setup_z_init = tf.assign(z_init, self.z_init_input_placeholder)
+        # self.setup_modifier_killian = tf.assign(modifier_killian, self.modifier_placeholder)
 
 
         #original self.init_opt = tf.variables_initializer(var_list=[modifier] + new_vars)
@@ -145,17 +156,18 @@ class GeneratorReconstructor(object):
     def generate_image_batch(self, z_init_numpy, modifier_numpy, batch_size):
         # images and batch_size are treated as numpy
 
-        self.sess.run(self.init_opt)
+        # self.sess.run(self.init_opt)
         # self.sess.run(self.setup, self.setup_z_init, self.setup_modifier_killian, feed_dict={self.assign_timg: images,
         #                                                                                      self.z_init_input_placeholder: z_init_numpy,
         #                                                                                      self.modifier_placeholder: modifier_numpy})
 
-        self.sess.run(self.setup_z_init, feed_dict={self.z_init_input_placeholder: z_init_numpy,
-                                                    self.modifier_placeholder: modifier_numpy})
-        self.sess.run(self.setup_modifier_killian, feed_dict={self.modifier_placeholder: modifier_numpy})
+        # self.sess.run(self.setup_z_init, feed_dict={self.z_init_input_placeholder: z_init_numpy,
+        #                                             self.modifier_placeholder: modifier_numpy})
+        # self.sess.run(self.setup_modifier_killian, feed_dict={self.modifier_placeholder: modifier_numpy})
 
         for _ in range(self.rec_iters):
-            all_z_recs = self.sess.run([self.z_hats_recs])
+            all_z_recs = self.sess.run([self.z_hats_recs], feed_dict={self.z_init_input_placeholder: z_init_numpy,
+                                                                      self.modifier_placeholder: modifier_numpy})
 
         return all_z_recs
 
@@ -265,19 +277,22 @@ class GeneratorReconstructor(object):
     def generate_gradient_batch(self, z_init_numpy, modifier_numpy, images, batch_size):
         # images and batch_size are treated as numpy
 
-        self.sess.run(self.init_opt)
+        # self.sess.run(self.init_opt)
         # self.sess.run(self.setup, self.setup_z_init, self.setup_modifier_killian, feed_dict={self.assign_timg: images,
         #                                                                                      self.z_init_input_placeholder: z_init_numpy,
         #                                                                                      self.modifier_placeholder: modifier_numpy})
 
-        self.sess.run(self.setup_z_init, feed_dict={self.z_init_input_placeholder: z_init_numpy,
-                                                    self.modifier_placeholder: modifier_numpy})
-        self.sess.run(self.setup_modifier_killian, feed_dict={self.modifier_placeholder: modifier_numpy})
+        # self.sess.run(self.setup_z_init, feed_dict={self.z_init_input_placeholder: z_init_numpy,
+        #                                             self.modifier_placeholder: modifier_numpy})
 
-        self.sess.run(self.setup, feed_dict={self.assign_timg: images})
+        # self.sess.run(self.setup_modifier_killian, feed_dict={self.modifier_placeholder: modifier_numpy})
 
-        for _ in range(self.rec_iters):
-            all_grads = self.sess.run([self.grad])
+        # self.sess.run(self.setup, feed_dict={self.assign_timg: images})
+
+        for _ in range(self.rec_iters): #TODO I don't think I need to loop anymore here
+            all_grads = self.sess.run([self.grad], feed_dict={self.z_init_input_placeholder: z_init_numpy,
+                                                              self.modifier_placeholder: modifier_numpy,
+                                                              self.assign_timg: images})
 
         return all_grads
 
@@ -285,6 +300,34 @@ class GeneratorReconstructor(object):
 
         def recon_wrap(z_init_numpy, modifier_numpy, images, b):
             all_grads = self.generate_gradient_batch(z_init_numpy, modifier_numpy, images, b)
+            return np.array(all_grads, dtype=np.float32)
+
+        all_grads = tf.py_func(recon_wrap, [z_init_numpy, modifier_numpy, images, batch_size], [tf.float32])
+
+        # all_z_recs_reshaped = all_z_recs.getshape()[2:]
+        # all_z_recs_reshaped =  tf.reshape(all_z_recs, [batch_size, 28,28,1])
+        #TODO remove 128 latent hardcoded value
+        all_grads_reshaped = tf.reshape(all_grads, [batch_size*128])
+        return tf.stop_gradient(all_grads_reshaped)
+
+
+    def generate_gradient2(self, z_init_numpy, modifier_numpy, images, batch_size=None, back_prop=False, reconstructor_id=0):
+
+        def recon_wrap(z_init_numpy, modifier_numpy, images, b):
+            # all_grads = self.generate_gradient_batch(z_init_numpy, modifier_numpy, images, b)
+            self.sess.run(self.init_opt)
+            # self.sess.run(self.setup, self.setup_z_init, self.setup_modifier_killian, feed_dict={self.assign_timg: images,
+            #                                                                                      self.z_init_input_placeholder: z_init_numpy,
+            #                                                                                      self.modifier_placeholder: modifier_numpy})
+
+            self.sess.run(self.setup_z_init, feed_dict={self.z_init_input_placeholder: z_init_numpy,
+                                                        self.modifier_placeholder: modifier_numpy})
+            self.sess.run(self.setup_modifier_killian, feed_dict={self.modifier_placeholder: modifier_numpy})
+
+            self.sess.run(self.setup, feed_dict={self.assign_timg: images})
+
+            for _ in range(self.rec_iters):  # TODO I don't think I need to loop anymore here
+                all_grads = self.sess.run([self.grad])
             return np.array(all_grads, dtype=np.float32)
 
         all_grads = tf.py_func(recon_wrap, [z_init_numpy, modifier_numpy, images, batch_size], [tf.float32])
