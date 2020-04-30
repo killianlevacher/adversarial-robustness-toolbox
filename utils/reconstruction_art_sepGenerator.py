@@ -29,15 +29,13 @@ class GeneratorReconstructor(object):
         self.rec_iters = gan.rec_iters
 
         x_shape = [self.batch_size] + image_dim
-        #Killian original variable being assigned timg = tf.Variable(np.zeros(x_shape), dtype=tf.float32, name='timg')
 
         self.image_adverse_placeholder = tf.placeholder(tf.float32, shape=[50, 28, 28, 1], name="image_adverse_placeholder_1")
-        # self.assign_timg = tf.placeholder(tf.float32, x_shape, name='assign_timg')
+        self.modifier_placeholder = tf.placeholder(tf.float32, shape=[self.batch_size, self.latent_dim],
+                                                   name='z_modifier_placeholder')
 
 
         self.timg_tiled_rr = tf.reshape(self.image_adverse_placeholder, [x_shape[0], np.prod(x_shape[1:])])
-        # Killian Original timg_tiled_rr = tf.reshape(self.assign_timg, [x_shape[0], np.prod(x_shape[1:])])
-        # timg_tiled_rr = tf.reshape(timg, [x_shape[0], np.prod(x_shape[1:])])
         self.timg_tiled_rr = tf.tile(self.timg_tiled_rr, [1, rec_rr])
         self.timg_tiled_rr = tf.reshape(self.timg_tiled_rr, [x_shape[0] * rec_rr] + x_shape[1:])
 
@@ -55,29 +53,14 @@ class GeneratorReconstructor(object):
                                  dtype=tf.float32,
                                  name='z_init_rec')
 
-        self.modifier_placeholder = tf.placeholder(tf.float32, shape=[self.batch_size, self.latent_dim],
-                                                   name='z_modifier_placeholder')
-        #Killian original variable being assigned modifier_killian = tf.Variable(np.zeros([self.batch_size,self.latent_dim]), dtype=tf.float32, name='modifier_killian')
 
-        # z_init = tf.Variable(np.zeros([1, 1, batch_size, latent_dim]), dtype=tf.float32, name='z_init')
-        # z_init_reshaped = tf.reshape(z_init, [batch_size, latent_dim])
-        #Killian original variable being assigned z_init = tf.Variable(np.zeros([self.batch_size, self.latent_dim]), dtype=tf.float32, name='z_init')
-        # z_init_reshaped = z_init
 
         self.z_init_input_placeholder = tf.placeholder(tf.float32, shape=[self.batch_size, self.latent_dim],
                                                        name='z_init_input_placeholderK')
         z_init_reshaped = self.z_init_input_placeholder
 
-        # Define optimization #Killian this is where the delta applied to z_init is created
-        # modifier = tf.Variable(np.zeros((batch_size * rec_rr, latent_dim)), dtype=tf.float32, name='z_modifier')
-
-        #
-        # z_init_input_reshaped_placeholder = tf.reshape(self.z_init_input_placeholder, [batch_size,latent_dim])
-
         #TODO I should simply remove z_init and modifier and combine them into one
         self.z_hats_recs = gan.generator_fn(z_init_reshaped + self.modifier_placeholder, is_training=False)
-        tmp = ""
-        #original self.z_hats_recs = gan.generator_fn(self.z_init + modifier, is_training=False)
 
 
         num_dim = len(self.z_hats_recs.get_shape())
@@ -91,17 +74,10 @@ class GeneratorReconstructor(object):
         #Killian trying a gradient calculation
         self.grad = tf.gradients(self.image_rec_loss, self.modifier_placeholder)
 
-        # rec_loss = tf.reduce_sum(self.image_rec_loss)
-        #
-        # # Handle random restart
-        # final_recs = []
-        # for i in range(batch_size):
-        #     ind = i * rec_rr + tf.argmin(self.image_rec_loss[i * rec_rr:(i + 1) * rec_rr], axis=0)
-        #     final_recs.append(self.z_hats_recs[tf.cast(ind, tf.int32)])
-        #
-        # self.online_rec = tf.stack(final_recs)
-        # self.online_zs = z_init + modifier
-        #
+        rec_loss = tf.reduce_sum(self.image_rec_loss)
+
+
+
         # # Setup the adam optimizer and keep track of variables we're creating
         start_vars = set(x.name for x in tf.global_variables())
         # optimizer = tf.train.AdamOptimizer(rec_lr)
@@ -128,13 +104,13 @@ class GeneratorReconstructor(object):
         #original self.init_opt = tf.variables_initializer(var_list=[modifier] + new_vars)
         self.init_opt = tf.variables_initializer(var_list=[] + new_vars)
 
-        print('Reconstruction module initialzied...\n')
+        print('Reconstruction module initialized...\n')
 
 
-    def generate_image_killian_extrapolated_good(self):
+    def generate_image_projected_tensor(self):
 
         def recon_wrap(z_init_input_placeholder, modifier_placeholder, b):
-            # z_recs = self.generate_image_batch_good(z_init_numpy, modifier_numpy, b)
+
             for _ in range(self.rec_iters):
                 all_z_recs = self.sess.run([self.z_hats_recs],
                                            feed_dict={self.z_init_input_placeholder: z_init_input_placeholder,
@@ -144,7 +120,6 @@ class GeneratorReconstructor(object):
 
         all_z_recs = tf.py_func(recon_wrap, [self.z_init_input_placeholder, self.modifier_placeholder, self.batch_size], [tf.float32])
 
-        # all_z_recs_reshaped = all_z_recs.getshape()[2:]
         all_z_recs_reshaped = tf.reshape(all_z_recs, [self.batch_size, 28, 28, 1])
 
 
@@ -192,7 +167,7 @@ class GeneratorReconstructor(object):
 
         return tf.stop_gradient(all_z_recs_reshaped), self.image_rec_loss_test
 
-    def generate_gradient_tensor_good(self, z_init_numpy, modifier_numpy, image_adverse_tensor, batch_size=None, back_prop=False, reconstructor_id=0):
+    def generate_gradient_tensor(self, z_init_numpy, modifier_numpy, image_adverse_tensor, batch_size=None, back_prop=False, reconstructor_id=0):
 
         def recon_wrap(z_init_numpy, modifier_numpy, image_adverse_tensor, b):
             # all_grads = self.generate_gradient_batch_good(z_init_numpy, modifier_numpy, images, b)
@@ -205,11 +180,18 @@ class GeneratorReconstructor(object):
 
         all_grads = tf.py_func(recon_wrap, [z_init_numpy, modifier_numpy, image_adverse_tensor, batch_size], [tf.float32])
 
-        # all_z_recs_reshaped = all_z_recs.getshape()[2:]
-        # all_z_recs_reshaped =  tf.reshape(all_z_recs, [batch_size, 28,28,1])
+
         #TODO remove 128 latent hardcoded value
         all_grads_reshaped = tf.reshape(all_grads, [batch_size*128])
         return tf.stop_gradient(all_grads_reshaped)
+
+
+
+
+
+
+
+
 
     # def generate_gradient_batch_good(self, z_init_numpy, modifier_numpy, images, batch_size):
     #     # images and batch_size are treated as numpy
