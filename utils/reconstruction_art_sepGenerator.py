@@ -147,6 +147,14 @@ class GeneratorReconstructor(object):
         self.image_generated_tensor = self.generate_image_good(self.z_init_input_placeholder, self.modifier_placeholder,
                                                                batch_size=self.batch_size, reconstructor_id=3)
 
+        #Killian Test
+        # all_z_recs_reshaped = all_z_recs.getshape()[2:]
+        # all_z_recs_reshaped = tf.reshape(self.z_hats_recs, [self.batch_size, 28, 28, 1])
+        # self.image_generated_tensor =  tf.stop_gradient(all_z_recs_reshaped)
+
+
+        # self.image_generated_tensor = self.z_hats_recs
+
         self.image_adverse_tensor = tf.placeholder(tf.float32, shape=[self.batch_size, 28, 28, 1])
         self.gradient_tensor = self.generate_gradient_good(self.z_init_input_placeholder, self.modifier_placeholder, self.image_adverse_tensor,
                                                            batch_size=self.batch_size, reconstructor_id=3)
@@ -166,37 +174,37 @@ class GeneratorReconstructor(object):
         # return image_value
 
 
-    def generate_image_batch_good(self, z_init_numpy, modifier_numpy, batch_size):
-        # images and batch_size are treated as numpy
+    # def generate_image_batch_good(self, z_init_numpy, modifier_numpy, batch_size):
+    #     # images and batch_size are treated as numpy
+    #
+    #     # self.sess.run(self.init_opt)
+    #     # self.sess.run(self.setup, self.setup_z_init, self.setup_modifier_killian, feed_dict={self.assign_timg: images,
+    #     #                                                                                      self.z_init_input_placeholder: z_init_numpy,
+    #     #                                                                                      self.modifier_placeholder: modifier_numpy})
+    #
+    #     # self.sess.run(self.setup_z_init, feed_dict={self.z_init_input_placeholder: z_init_numpy,
+    #     #                                             self.modifier_placeholder: modifier_numpy})
+    #     # self.sess.run(self.setup_modifier_killian, feed_dict={self.modifier_placeholder: modifier_numpy})
+    #
+    #     for _ in range(self.rec_iters):
+    #         all_z_recs = self.sess.run([self.z_hats_recs], feed_dict={self.z_init_input_placeholder: z_init_numpy,
+    #                                                                   self.modifier_placeholder: modifier_numpy})
+    #
+    #     return all_z_recs
 
-        # self.sess.run(self.init_opt)
-        # self.sess.run(self.setup, self.setup_z_init, self.setup_modifier_killian, feed_dict={self.assign_timg: images,
-        #                                                                                      self.z_init_input_placeholder: z_init_numpy,
-        #                                                                                      self.modifier_placeholder: modifier_numpy})
-
-        # self.sess.run(self.setup_z_init, feed_dict={self.z_init_input_placeholder: z_init_numpy,
-        #                                             self.modifier_placeholder: modifier_numpy})
-        # self.sess.run(self.setup_modifier_killian, feed_dict={self.modifier_placeholder: modifier_numpy})
-
-        for _ in range(self.rec_iters):
-            all_z_recs = self.sess.run([self.z_hats_recs], feed_dict={self.z_init_input_placeholder: z_init_numpy,
-                                                                      self.modifier_placeholder: modifier_numpy})
-
-        return all_z_recs
 
 
+    def generate_image_good(self, z_init_input_placeholder, modifier_placeholder, batch_size=None, back_prop=False, reconstructor_id=0):
 
-    def generate_image_good(self, z_init_numpy, modifier_numpy, batch_size=None, back_prop=False, reconstructor_id=0):
-
-        def recon_wrap(z_init_numpy, modifier_numpy, b):
+        def recon_wrap(z_init_input_placeholder, modifier_placeholder, b):
             # z_recs = self.generate_image_batch_good(z_init_numpy, modifier_numpy, b)
             for _ in range(self.rec_iters):
-                all_z_recs = self.sess.run([self.z_hats_recs], feed_dict={self.z_init_input_placeholder: z_init_numpy,
-                                                                          self.modifier_placeholder: modifier_numpy})
+                all_z_recs = self.sess.run([self.z_hats_recs], feed_dict={self.z_init_input_placeholder: z_init_input_placeholder,
+                                                                          self.modifier_placeholder: modifier_placeholder})
             z_recs = all_z_recs
             return np.array(z_recs, dtype=np.float32)
 
-        all_z_recs = tf.py_func(recon_wrap, [z_init_numpy, modifier_numpy, batch_size], [tf.float32])
+        all_z_recs = tf.py_func(recon_wrap, [z_init_input_placeholder, modifier_placeholder, batch_size], [tf.float32])
 
         # all_z_recs_reshaped = all_z_recs.getshape()[2:]
         all_z_recs_reshaped =  tf.reshape(all_z_recs, [batch_size, 28,28,1])
