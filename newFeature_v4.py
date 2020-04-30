@@ -87,7 +87,7 @@ def create_ts1_encoder_model(batch_size):
 def create_ts1_generator_model(batch_size):
     generator_reconstructor = GeneratorReconstructor(batch_size)
 
-    sess, image_generated_tensor, z_init_input_placeholder, modifier_placeholder, gradient_tensor, image_adverse_tensor = generator_reconstructor.generate_image_killian_extrapolated_good()
+    sess, image_generated_tensor, image_rec_loss_test, z_init_input_placeholder, modifier_placeholder, gradient_tensor, image_adverse_tensor = generator_reconstructor.generate_image_killian_extrapolated_good()
 
     generator = Tensorflow1Generator(
         # clip_values=(min_pixel_value, max_pixel_value),
@@ -137,6 +137,45 @@ def main():
     logger.info("Accuracy on adversarial examples: {}%".format(accuracy_adv * 100))
 
 
+
+
+    ####### TEST
+    generator_reconstructor = GeneratorReconstructor(batch_size)
+
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    sess_test = tf.Session(config=config)
+
+    random_z0_modifier = np.random.rand(50, 128)
+
+    sess, image_generated_tensor, z_init_input_placeholder, modifier_placeholder, gradient_tensor, image_adverse_tensor = generator_reconstructor.generate_image_killian_extrapolated_good()
+    test_result = sess_test.run(image_generated_tensor,
+                               feed_dict={generator_reconstructor.image_adverse_placeholder: x_train_adv,
+                                          generator_reconstructor.z_init_input_placeholder: random_z0_modifier,
+                                          generator_reconstructor.modifier_placeholder: random_z0_modifier})
+
+
+    # images_test = sess_test.run(generator_reconstructor.z_hats_recs,
+    #                            feed_dict={generator_reconstructor.z_init_input_placeholder: random_z0_modifier,
+    #                                       generator_reconstructor.modifier_placeholder: random_z0_modifier})
+
+    # image_adverse_tensor = tf.placeholder(tf.float32, shape=[50, 28, 28, 1])
+    gradient_tensor = generator_reconstructor.generate_gradient_tensor_good(generator_reconstructor.z_init_input_placeholder,
+                                                                            generator_reconstructor.modifier_placeholder,
+                                                                            generator_reconstructor.image_adverse_placeholder,
+                                                                            batch_size=generator_reconstructor.batch_size,
+                                                                            reconstructor_id=3)
+
+    gradients_value = sess_test.run(gradient_tensor,
+                               feed_dict={generator_reconstructor.image_adverse_placeholder: x_train_adv,
+                                          generator_reconstructor.z_init_input_placeholder: random_z0_modifier,
+                                          generator_reconstructor.modifier_placeholder: random_z0_modifier})
+
+
+    result = sess_test.run(generator_reconstructor.z_hats_recs,
+                               feed_dict={generator_reconstructor.image_adverse_placeholder: x_train_adv,
+                                          generator_reconstructor.z_init_input_placeholder: random_z0_modifier,
+                                          generator_reconstructor.modifier_placeholder: random_z0_modifier})
 
     ######## STEP 5 Create Encoder and Generator
 

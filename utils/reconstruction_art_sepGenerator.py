@@ -15,8 +15,8 @@ class GeneratorReconstructor(object):
     def __init__(self, batch_size):
 
         gan = gan_from_config(batch_size, True)
-
         gan.load_model()
+
         self.batch_size = gan.batch_size
 
         self.latent_dim = gan.latent_dim
@@ -31,19 +31,22 @@ class GeneratorReconstructor(object):
         x_shape = [self.batch_size] + image_dim
         #Killian original variable being assigned timg = tf.Variable(np.zeros(x_shape), dtype=tf.float32, name='timg')
 
-        self.assign_timg = tf.placeholder(tf.float32, x_shape, name='assign_timg')
-        timg_tiled_rr = tf.reshape(self.assign_timg, [x_shape[0], np.prod(x_shape[1:])])
+        self.image_adverse_placeholder = tf.placeholder(tf.float32, shape=[50, 28, 28, 1], name="image_adverse_placeholder_1")
+        # self.assign_timg = tf.placeholder(tf.float32, x_shape, name='assign_timg')
+
+
+        self.timg_tiled_rr = tf.reshape(self.image_adverse_placeholder, [x_shape[0], np.prod(x_shape[1:])])
+        # Killian Original timg_tiled_rr = tf.reshape(self.assign_timg, [x_shape[0], np.prod(x_shape[1:])])
         # timg_tiled_rr = tf.reshape(timg, [x_shape[0], np.prod(x_shape[1:])])
-        timg_tiled_rr = tf.tile(timg_tiled_rr, [1, rec_rr])
-        timg_tiled_rr = tf.reshape(
-            timg_tiled_rr, [x_shape[0] * rec_rr] + x_shape[1:])
+        self.timg_tiled_rr = tf.tile(self.timg_tiled_rr, [1, rec_rr])
+        self.timg_tiled_rr = tf.reshape(self.timg_tiled_rr, [x_shape[0] * rec_rr] + x_shape[1:])
 
         #TODO this is where the difference between Invert and Defence Gan happens -
         # in the case of just defenceGan, the encoder is ignored and Z is randomly initialised
 
         if isinstance(gan, InvertorDefenseGAN):
             # DefenseGAN++
-            self.z_init = gan.encoder_fn(timg_tiled_rr, is_training=False)[0]
+            self.z_init = gan.encoder_fn(self.timg_tiled_rr, is_training=False)[0]
         else:
             # DefenseGAN
             self.z_init = tf.Variable(np.random.normal(size=(self.batch_size * rec_rr, self.latent_dim)),
@@ -79,11 +82,11 @@ class GeneratorReconstructor(object):
 
         num_dim = len(self.z_hats_recs.get_shape())
         # #P2 version axes = range(1, num_dim) - fix: https://github.com/WojciechMormul/gan/issues/3
-        axes = list(range(1, num_dim))
+        self.axes = list(range(1, num_dim))
 
 
         #TODO to include in TS1Generator
-        self.image_rec_loss = tf.reduce_mean(tf.square(self.z_hats_recs - timg_tiled_rr), axis=axes)
+        self.image_rec_loss = tf.reduce_mean(tf.square(self.z_hats_recs - self.timg_tiled_rr), axis=self.axes)
 
         #Killian trying a gradient calculation
         self.grad = tf.gradients(self.image_rec_loss, self.modifier_placeholder)
@@ -144,8 +147,25 @@ class GeneratorReconstructor(object):
         # self.modifier_placeholder = tf.placeholder(tf.float32, shape=[self.batch_size, self.latent_dim],
         #                                            name='z_modifier_placeholder1')
 
-        self.image_generated_tensor = self.generate_image_good(self.z_init_input_placeholder, self.modifier_placeholder,
-                                                               batch_size=self.batch_size, reconstructor_id=3)
+
+        def recon_wrap(z_init_input_placeholder, modifier_placeholder, b):
+            # z_recs = self.generate_image_batch_good(z_init_numpy, modifier_numpy, b)
+            for _ in range(self.rec_iters):
+                all_z_recs = self.sess.run([self.z_hats_recs],
+                                           feed_dict={self.z_init_input_placeholder: z_init_input_placeholder,
+                                                      self.modifier_placeholder: modifier_placeholder})
+            z_recs = all_z_recs
+            return np.array(z_recs, dtype=np.float32)
+
+        all_z_recs = tf.py_func(recon_wrap, [self.z_init_input_placeholder, self.modifier_placeholder, self.batch_size], [tf.float32])
+
+        # all_z_recs_reshaped = all_z_recs.getshape()[2:]
+        all_z_recs_reshaped = tf.reshape(all_z_recs, [self.batch_size, 28, 28, 1])
+
+
+        self.image_generated_tensor = tf.stop_gradient(all_z_recs_reshaped)
+        # self.image_generated_tensor, self.image_rec_loss_test = self.generate_image_tensor_good(self.z_init_input_placeholder, self.modifier_placeholder,
+        #                                                               batch_size=self.batch_size, reconstructor_id=3)
 
         #Killian Test
         # all_z_recs_reshaped = all_z_recs.getshape()[2:]
@@ -155,9 +175,9 @@ class GeneratorReconstructor(object):
 
         # self.image_generated_tensor = self.z_hats_recs
 
-        self.image_adverse_tensor = tf.placeholder(tf.float32, shape=[self.batch_size, 28, 28, 1])
-        self.gradient_tensor = self.generate_gradient_good(self.z_init_input_placeholder, self.modifier_placeholder, self.image_adverse_tensor,
-                                                           batch_size=self.batch_size, reconstructor_id=3)
+        # self.image_adverse_placeholder = tf.placeholder(tf.float32, shape=[self.batch_size, 28, 28, 1], name="image_adverse_placeholder")
+        self.gradient_tensor = self.generate_gradient_tensor_good(self.z_init_input_placeholder, self.modifier_placeholder, self.image_adverse_placeholder,
+                                                                  batch_size=self.batch_size, reconstructor_id=3)
 
         # random_modifier = np.random.rand(self.batch_size, self.latent_dim)
         #
@@ -166,7 +186,7 @@ class GeneratorReconstructor(object):
         #                                   self.modifier_placeholder: random_modifier})
 
 
-        return sess, self.image_generated_tensor, self.z_init_input_placeholder, self.modifier_placeholder, self.gradient_tensor, self.image_adverse_tensor
+        return sess, self.image_generated_tensor, self.z_init_input_placeholder, self.modifier_placeholder, self.gradient_tensor, self.image_adverse_placeholder
         # image_value = sess.run(self.image_generated_tensor,
         #                        feed_dict={self.z_init_input_placeholder: unmodified_z_value,
         #                                   self.modifier_placeholder: random_modifier})
@@ -194,7 +214,7 @@ class GeneratorReconstructor(object):
 
 
 
-    def generate_image_good(self, z_init_input_placeholder, modifier_placeholder, batch_size=None, back_prop=False, reconstructor_id=0):
+    def generate_image_tensor_good(self, z_init_input_placeholder, modifier_placeholder, batch_size=None, back_prop=False, reconstructor_id=0):
 
         def recon_wrap(z_init_input_placeholder, modifier_placeholder, b):
             # z_recs = self.generate_image_batch_good(z_init_numpy, modifier_numpy, b)
@@ -207,10 +227,28 @@ class GeneratorReconstructor(object):
         all_z_recs = tf.py_func(recon_wrap, [z_init_input_placeholder, modifier_placeholder, batch_size], [tf.float32])
 
         # all_z_recs_reshaped = all_z_recs.getshape()[2:]
-        all_z_recs_reshaped =  tf.reshape(all_z_recs, [batch_size, 28,28,1])
-        return tf.stop_gradient(all_z_recs_reshaped)
+        all_z_recs_reshaped = tf.reshape(all_z_recs, [batch_size, 28, 28, 1])
 
+        return tf.stop_gradient(all_z_recs_reshaped), self.image_rec_loss_test
 
+    def generate_gradient_tensor_good(self, z_init_numpy, modifier_numpy, image_adverse_tensor, batch_size=None, back_prop=False, reconstructor_id=0):
+
+        def recon_wrap(z_init_numpy, modifier_numpy, image_adverse_tensor, b):
+            # all_grads = self.generate_gradient_batch_good(z_init_numpy, modifier_numpy, images, b)
+            for _ in range(self.rec_iters):  # TODO I don't think I need to loop anymore here
+                all_grads = self.sess.run([self.grad], feed_dict={self.z_init_input_placeholder: z_init_numpy,
+                                                                  self.modifier_placeholder: modifier_numpy,
+                                                                  self.image_adverse_placeholder: image_adverse_tensor})
+
+            return np.array(all_grads, dtype=np.float32)
+
+        all_grads = tf.py_func(recon_wrap, [z_init_numpy, modifier_numpy, image_adverse_tensor, batch_size], [tf.float32])
+
+        # all_z_recs_reshaped = all_z_recs.getshape()[2:]
+        # all_z_recs_reshaped =  tf.reshape(all_z_recs, [batch_size, 28,28,1])
+        #TODO remove 128 latent hardcoded value
+        all_grads_reshaped = tf.reshape(all_grads, [batch_size*128])
+        return tf.stop_gradient(all_grads_reshaped)
 
     # def generate_gradient_batch_good(self, z_init_numpy, modifier_numpy, images, batch_size):
     #     # images and batch_size are treated as numpy
@@ -234,24 +272,7 @@ class GeneratorReconstructor(object):
     #
     #     return all_grads
 
-    def generate_gradient_good(self, z_init_numpy, modifier_numpy, images, batch_size=None, back_prop=False, reconstructor_id=0):
 
-        def recon_wrap(z_init_numpy, modifier_numpy, images, b):
-            # all_grads = self.generate_gradient_batch_good(z_init_numpy, modifier_numpy, images, b)
-            for _ in range(self.rec_iters):  # TODO I don't think I need to loop anymore here
-                all_grads = self.sess.run([self.grad], feed_dict={self.z_init_input_placeholder: z_init_numpy,
-                                                                  self.modifier_placeholder: modifier_numpy,
-                                                                  self.assign_timg: images})
-
-            return np.array(all_grads, dtype=np.float32)
-
-        all_grads = tf.py_func(recon_wrap, [z_init_numpy, modifier_numpy, images, batch_size], [tf.float32])
-
-        # all_z_recs_reshaped = all_z_recs.getshape()[2:]
-        # all_z_recs_reshaped =  tf.reshape(all_z_recs, [batch_size, 28,28,1])
-        #TODO remove 128 latent hardcoded value
-        all_grads_reshaped = tf.reshape(all_grads, [batch_size*128])
-        return tf.stop_gradient(all_grads_reshaped)
 
 
 

@@ -176,55 +176,55 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
         #
         # return predictions
 
-    def loss_gradient_deprecated(self, unmodified_z_value, input_modifier, **kwargs):
-        """
-        Compute the gradient of the loss function w.r.t. `x`.
-
-        :param x: Sample input with shape as expected by the model.
-        :type x: `np.ndarray`
-        :param y: Target values (class labels) one-hot-encoded of shape (nb_samples, nb_classes) or indices of shape
-                  (nb_samples,).
-        :type y: `np.ndarray`
-        :return: Array of gradients of the same shape as `x`.
-        :rtype: `np.ndarray`
-        """
-        # Apply preprocessing
-        # x_preprocessed, y_preprocessed = self._apply_preprocessing(x, y, fit=False)
-
-        # Check if loss available
-        # if not hasattr(self, "_loss_grads") or self._loss_grads is None:
-        #     raise ValueError("Need the loss function placeholder to compute the loss gradient.")
-
-        # Get the loss gradients graph
-        # if self._loss is not None:
-        #     TODO put this self.loss_grads back in __init__
-        # original self._loss_grads = tf.gradients(self._loss, self._input_ph)[0]
-        constant_input_z = tf.stop_gradient(self._input_z)
-        self._loss_grads = \
-        tf.gradients(self._loss, [constant_input_z, self._input_modifier], stop_gradients=[constant_input_z])[0]
-
-        # TODO initialise the input_modifier and all other input values
-
-        # # Check label shape
-        # if self._reduce_labels:
-        #     y_preprocessed = np.argmax(y_preprocessed, axis=1)
-
-        # TODO don't put z unmodified + input_modifier
-        # X = Z and  Y = x_adv
-        # Create feed_dict
-        feed_dict = {self._input_z: unmodified_z_value, self._input_modifier: input_modifier}
-        # feed_dict = {self._input_ph: x_preprocessed, self._labels_ph: y_preprocessed}
-        feed_dict.update(self._feed_dict)
-
-        grads = self._sess.run(self._loss_grads,
-                               feed_dict=feed_dict)
-
-        # Compute gradients
-        # grads = self._sess.run(self._loss_grads, feed_dict=feed_dict)
-        # grads = self._apply_preprocessing_gradient(x, grads)
-        # assert grads.shape == x_preprocessed.shape
-
-        return grads
+    # def loss_gradient_deprecated(self, unmodified_z_value, input_modifier, **kwargs):
+    #     """
+    #     Compute the gradient of the loss function w.r.t. `x`.
+    #
+    #     :param x: Sample input with shape as expected by the model.
+    #     :type x: `np.ndarray`
+    #     :param y: Target values (class labels) one-hot-encoded of shape (nb_samples, nb_classes) or indices of shape
+    #               (nb_samples,).
+    #     :type y: `np.ndarray`
+    #     :return: Array of gradients of the same shape as `x`.
+    #     :rtype: `np.ndarray`
+    #     """
+    #     # Apply preprocessing
+    #     # x_preprocessed, y_preprocessed = self._apply_preprocessing(x, y, fit=False)
+    #
+    #     # Check if loss available
+    #     # if not hasattr(self, "_loss_grads") or self._loss_grads is None:
+    #     #     raise ValueError("Need the loss function placeholder to compute the loss gradient.")
+    #
+    #     # Get the loss gradients graph
+    #     # if self._loss is not None:
+    #     #     TODO put this self.loss_grads back in __init__
+    #     # original self._loss_grads = tf.gradients(self._loss, self._input_ph)[0]
+    #     constant_input_z = tf.stop_gradient(self._input_z)
+    #     self._loss_grads = \
+    #     tf.gradients(self._loss, [constant_input_z, self._input_modifier], stop_gradients=[constant_input_z])[0]
+    #
+    #     # TODO initialise the input_modifier and all other input values
+    #
+    #     # # Check label shape
+    #     # if self._reduce_labels:
+    #     #     y_preprocessed = np.argmax(y_preprocessed, axis=1)
+    #
+    #     # TODO don't put z unmodified + input_modifier
+    #     # X = Z and  Y = x_adv
+    #     # Create feed_dict
+    #     feed_dict = {self._input_z: unmodified_z_value, self._input_modifier: input_modifier}
+    #     # feed_dict = {self._input_ph: x_preprocessed, self._labels_ph: y_preprocessed}
+    #     feed_dict.update(self._feed_dict)
+    #
+    #     grads = self._sess.run(self._loss_grads,
+    #                            feed_dict=feed_dict)
+    #
+    #     # Compute gradients
+    #     # grads = self._sess.run(self._loss_grads, feed_dict=feed_dict)
+    #     # grads = self._apply_preprocessing_gradient(x, grads)
+    #     # assert grads.shape == x_preprocessed.shape
+    #
+    #     return grads
 
 
     def new_loss_gradient(self, unmodified_z_value, input_modifier, image_adv):
