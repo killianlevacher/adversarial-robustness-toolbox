@@ -212,32 +212,37 @@ class GeneratorReconstructor(object):
 
 
 
-    def generate_gradient_batch_good(self, z_init_numpy, modifier_numpy, images, batch_size):
-        # images and batch_size are treated as numpy
-
-        # self.sess.run(self.init_opt)
-        # self.sess.run(self.setup, self.setup_z_init, self.setup_modifier_killian, feed_dict={self.assign_timg: images,
-        #                                                                                      self.z_init_input_placeholder: z_init_numpy,
-        #                                                                                      self.modifier_placeholder: modifier_numpy})
-
-        # self.sess.run(self.setup_z_init, feed_dict={self.z_init_input_placeholder: z_init_numpy,
-        #                                             self.modifier_placeholder: modifier_numpy})
-
-        # self.sess.run(self.setup_modifier_killian, feed_dict={self.modifier_placeholder: modifier_numpy})
-
-        # self.sess.run(self.setup, feed_dict={self.assign_timg: images})
-
-        for _ in range(self.rec_iters): #TODO I don't think I need to loop anymore here
-            all_grads = self.sess.run([self.grad], feed_dict={self.z_init_input_placeholder: z_init_numpy,
-                                                              self.modifier_placeholder: modifier_numpy,
-                                                              self.assign_timg: images})
-
-        return all_grads
+    # def generate_gradient_batch_good(self, z_init_numpy, modifier_numpy, images, batch_size):
+    #     # images and batch_size are treated as numpy
+    #
+    #     # self.sess.run(self.init_opt)
+    #     # self.sess.run(self.setup, self.setup_z_init, self.setup_modifier_killian, feed_dict={self.assign_timg: images,
+    #     #                                                                                      self.z_init_input_placeholder: z_init_numpy,
+    #     #                                                                                      self.modifier_placeholder: modifier_numpy})
+    #
+    #     # self.sess.run(self.setup_z_init, feed_dict={self.z_init_input_placeholder: z_init_numpy,
+    #     #                                             self.modifier_placeholder: modifier_numpy})
+    #
+    #     # self.sess.run(self.setup_modifier_killian, feed_dict={self.modifier_placeholder: modifier_numpy})
+    #
+    #     # self.sess.run(self.setup, feed_dict={self.assign_timg: images})
+    #
+    #     for _ in range(self.rec_iters): #TODO I don't think I need to loop anymore here
+    #         all_grads = self.sess.run([self.grad], feed_dict={self.z_init_input_placeholder: z_init_numpy,
+    #                                                           self.modifier_placeholder: modifier_numpy,
+    #                                                           self.assign_timg: images})
+    #
+    #     return all_grads
 
     def generate_gradient_good(self, z_init_numpy, modifier_numpy, images, batch_size=None, back_prop=False, reconstructor_id=0):
 
         def recon_wrap(z_init_numpy, modifier_numpy, images, b):
-            all_grads = self.generate_gradient_batch_good(z_init_numpy, modifier_numpy, images, b)
+            # all_grads = self.generate_gradient_batch_good(z_init_numpy, modifier_numpy, images, b)
+            for _ in range(self.rec_iters):  # TODO I don't think I need to loop anymore here
+                all_grads = self.sess.run([self.grad], feed_dict={self.z_init_input_placeholder: z_init_numpy,
+                                                                  self.modifier_placeholder: modifier_numpy,
+                                                                  self.assign_timg: images})
+
             return np.array(all_grads, dtype=np.float32)
 
         all_grads = tf.py_func(recon_wrap, [z_init_numpy, modifier_numpy, images, batch_size], [tf.float32])
