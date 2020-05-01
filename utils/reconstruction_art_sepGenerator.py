@@ -31,8 +31,14 @@ class GeneratorReconstructor(object):
         x_shape = [self.batch_size] + image_dim
 
         self.image_adverse_placeholder = tf.placeholder(tf.float32, shape=[50, 28, 28, 1], name="image_adverse_placeholder_1")
-        self.modifier_placeholder = tf.placeholder(tf.float32, shape=[self.batch_size, self.latent_dim],
-                                                   name='z_modifier_placeholder')
+        # self.modifier_placeholder = tf.placeholder(tf.float32, shape=[self.batch_size, self.latent_dim],
+        #                                            name='z_modifier_placeholder')
+        # self.z_init_input_placeholder = tf.placeholder(tf.float32, shape=[self.batch_size, self.latent_dim],
+        #                                                name='z_init_input_placeholderK')
+
+
+        self.z_general_placeholder = tf.placeholder(tf.float32, shape=[self.batch_size, self.latent_dim],
+                                                       name='z_general_placeholder')
 
 
         self.timg_tiled_rr = tf.reshape(self.image_adverse_placeholder, [x_shape[0], np.prod(x_shape[1:])])
@@ -55,12 +61,11 @@ class GeneratorReconstructor(object):
 
 
 
-        self.z_init_input_placeholder = tf.placeholder(tf.float32, shape=[self.batch_size, self.latent_dim],
-                                                       name='z_init_input_placeholderK')
-        z_init_reshaped = self.z_init_input_placeholder
+
+        # z_init_reshaped = self.z_init_input_placeholder
 
         #TODO I should simply remove z_init and modifier and combine them into one
-        self.z_hats_recs = gan.generator_fn(z_init_reshaped + self.modifier_placeholder, is_training=False)
+        self.z_hats_recs = gan.generator_fn(self.z_general_placeholder, is_training=False)
 
 
         num_dim = len(self.z_hats_recs.get_shape())
@@ -72,7 +77,7 @@ class GeneratorReconstructor(object):
         self.image_rec_loss = tf.reduce_mean(tf.square(self.z_hats_recs - self.timg_tiled_rr), axis=self.axes)
 
         #Killian trying a gradient calculation
-        self.grad = tf.gradients(self.image_rec_loss, self.modifier_placeholder)
+        # self.grad = tf.gradients(self.image_rec_loss, self.modifier_placeholder)
 
         rec_loss = tf.reduce_sum(self.image_rec_loss)
 

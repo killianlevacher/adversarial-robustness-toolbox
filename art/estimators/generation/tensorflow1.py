@@ -42,7 +42,7 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
     def __init__(
             self,
             input_z,
-            input_modifier,
+            # input_modifier,
             output,
             image_adv=None,
             loss=None,
@@ -112,7 +112,7 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
         self._image_adv = image_adv
         # TODO I think this should be removed and used as input to generate only since it is not
         #  permanent - it could also be optional since there isn't any need to add a modifier technically
-        self._input_modifier = input_modifier
+        # self._input_modifier = input_modifier
 
         self._output = output
         # self._labels_ph = labels_ph
@@ -129,7 +129,7 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
             # TODO do the same thing for all not None variables
         self._sess = sess
 
-        self._new_grad = tf.gradients(self._loss, self._input_modifier)
+        self._new_grad = tf.gradients(self._loss, self._input_z)
 
         # Get the internal layers
         # self._layer_names = self._get_layers()
@@ -153,8 +153,7 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
         """
         # Apply preprocessing
         image_value = self._sess.run(self._output,
-                                     feed_dict={self._input_z: unmodified_z_value,
-                                                self._input_modifier: input_modifier})
+                                     feed_dict={self._input_z: unmodified_z_value})
 
         # x_preprocessed, _ = self._apply_preprocessing(x, y=None, fit=False)
         #
@@ -228,7 +227,7 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
     #     return grads
 
 
-    def new_loss_gradient(self, unmodified_z_value, input_modifier, image_adv):
+    def new_loss_gradient(self, unmodified_z_value, image_adv):
         # Apply preprocessing
         logging.info("Calculating Gradients")
 
@@ -236,8 +235,7 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
 
         gradients_value = self._sess.run(self._new_grad,
                                          feed_dict={self._image_adv: image_adv,
-                                                    self._input_z: unmodified_z_value,
-                                                    self._input_modifier: input_modifier})
+                                                    self._input_z: unmodified_z_value})
 
 
         return gradients_value
@@ -247,20 +245,18 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
         logging.info("Calculating Gradients")
         gradients_value = self._sess.run(self._grad,
                                          feed_dict={self._image_adv: image_adv,
-                                                    self._input_z: unmodified_z_value,
-                                                    self._input_modifier: input_modifier})
+                                                    self._input_z: unmodified_z_value})
 
 
         return gradients_value
 
 
 
-    def project(self, unmodified_z_value, input_modifier):
+    def project(self, unmodified_z_value):
         # Apply preprocessing
         logging.info("Projecting new image from z value")
         image_value = self._sess.run(self._output,
-                                     feed_dict={self._input_z: unmodified_z_value,
-                                                self._input_modifier: input_modifier})
+                                     feed_dict={self._input_z: unmodified_z_value})
 
         return image_value
 

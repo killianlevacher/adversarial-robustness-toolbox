@@ -81,13 +81,13 @@ class DefenceGan(Preprocessor):
         latent_dim = 128  # TODO remove this
         batch_size = 50 # TODO remove this
 
-        random_z0_modifier = np.random.rand(batch_size, latent_dim)
+        # random_z0_modifier = np.random.rand(batch_size, latent_dim)
 
         def generator_derivatives(z_i_modifier):
 
             z_i_modifier_reshaped = np.reshape(z_i_modifier, [batch_size, latent_dim])
             # grad = self.generator.loss_gradient(unmodified_z_value, z_i_modifier_reshaped, x_adv)
-            grad = self.generator.new_loss_gradient(unmodified_z_value, z_i_modifier_reshaped, x_adv)
+            grad = self.generator.new_loss_gradient(z_i_modifier_reshaped, x_adv)
 
 
             grad = np.float64(grad) # scipy fortran code seems to expect float64 not 32 https://github.com/scipy/scipy/issues/5832
@@ -101,7 +101,7 @@ class DefenceGan(Preprocessor):
             #
             # n = norm(source_representation.flatten() - guide_representation.flatten(), ord=2) ** 2
             z_i_modifier_reshaped = np.reshape(z_i_modifier, [batch_size, latent_dim])
-            image_projected = self.generator.project(unmodified_z_value, z_i_modifier_reshaped)
+            image_projected = self.generator.project(z_i_modifier_reshaped)
 
             #TODO maybe I could simply get the loss from the ts graph here too
 
@@ -135,9 +135,9 @@ class DefenceGan(Preprocessor):
                 )
 
         options.update(kwargs)
-        optimized_modifier_flat = minimize(func_loss_calculation, random_z0_modifier, jac=generator_derivatives, method="L-BFGS-B", options=options)
+        optimized_modifier_flat = minimize(func_loss_calculation, unmodified_z_value, jac=generator_derivatives, method="L-BFGS-B", options=options)
         optimized_modifier = np.reshape(optimized_modifier_flat.x,[batch_size,latent_dim])
-        image_projected = self.generator.project(unmodified_z_value, optimized_modifier)
+        image_projected = self.generator.project(optimized_modifier)
         # image_projected = self.generator.project(unmodified_z_value, random_z0_modifier)
 
         return image_projected

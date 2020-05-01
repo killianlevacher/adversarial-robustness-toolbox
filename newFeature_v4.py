@@ -91,8 +91,8 @@ def create_ts1_generator_model(batch_size):
 
     generator = Tensorflow1Generator(
         # clip_values=(min_pixel_value, max_pixel_value),
-        input_z=generator.z_init_input_placeholder,
-        input_modifier=generator.modifier_placeholder,
+        input_z=generator.z_general_placeholder,
+        # input_modifier=generator.modifier_placeholder,
         output=generator.z_hats_recs,
         # labels_ph=labels_ph,
         # train=train,
@@ -149,8 +149,7 @@ def main():
     random_z0_modifier = np.random.rand(50, 128)
     test_result = generator.sess.run(generator.z_hats_recs,
                                feed_dict={generator.image_adverse_placeholder: x_train_adv,
-                                          generator.z_init_input_placeholder: random_z0_modifier,
-                                          generator.modifier_placeholder: random_z0_modifier})
+                                          generator.z_general_placeholder: random_z0_modifier})
 
 
     # gradient_tensor = generator.generate_gradient_tensor(generator.z_init_input_placeholder,
@@ -162,8 +161,7 @@ def main():
 
     result = generator.sess.run(generator.image_rec_loss,
                                 feed_dict={generator.image_adverse_placeholder: x_train_adv,
-                                           generator.z_init_input_placeholder: random_z0_modifier,
-                                           generator.modifier_placeholder: random_z0_modifier})
+                                           generator.z_general_placeholder: random_z0_modifier})
 
     # gradients_value = generator.sess.run(generator._new_grad,
     #                            feed_dict={generator.image_adverse_placeholder: x_train_adv,
@@ -173,8 +171,7 @@ def main():
 
     result = generator.sess.run(generator.z_hats_recs,
                                feed_dict={generator.image_adverse_placeholder: x_train_adv,
-                                          generator.z_init_input_placeholder: random_z0_modifier,
-                                          generator.modifier_placeholder: random_z0_modifier})
+                                          generator.z_general_placeholder: random_z0_modifier})
 
     ######## STEP 5 Create Encoder and Generator
 
