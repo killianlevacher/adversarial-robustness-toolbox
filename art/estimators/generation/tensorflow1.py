@@ -159,7 +159,7 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
 
 
 
-    def new_loss_gradient(self, unmodified_z_value, image_adv):
+    def loss_gradient(self, unmodified_z_value, image_adv):
         # Apply preprocessing
         logging.info("Calculating Gradients")
 
@@ -172,16 +172,19 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
 
         return gradients_value
 
-    def loss_gradient(self, unmodified_z_value, input_modifier, image_adv):
-        # Apply preprocessing
-        logging.info("Calculating Gradients")
-        gradients_value = self._sess.run(self._grad,
-                                         feed_dict={self._image_adv: image_adv,
-                                                    self._input_z: unmodified_z_value})
+    # def loss_gradient(self, unmodified_z_value, input_modifier, image_adv):
+    #     # Apply preprocessing
+    #     logging.info("Calculating Gradients")
+    #     gradients_value = self._sess.run(self._grad,
+    #                                      feed_dict={self._image_adv: image_adv,
+    #                                                 self._input_z: unmodified_z_value})
+    #
+    #
+    #     return gradients_value
 
 
-        return gradients_value
-
+    def get_encoding_length(self):
+        return self._input_z.shape[1]
 
 
     def project(self, unmodified_z_value):

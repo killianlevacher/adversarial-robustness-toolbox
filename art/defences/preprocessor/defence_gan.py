@@ -44,7 +44,7 @@ class DefenceGan(Preprocessor):
 
     # params = ["clip_values", "bit_depth"]
 
-    def __init__(self, encoder, generator):
+    def __init__(self, generator, encoder=None):
         # def __init__(self, clip_values, bit_depth=8, apply_fit=False, apply_predict=True):
         """
         Create an instance of DefenceGAN.
@@ -52,61 +52,45 @@ class DefenceGan(Preprocessor):
         """
         super(DefenceGan, self).__init__()
 
-        assert isinstance(encoder, EncoderMixin)
         assert isinstance(generator, GeneratorMixin)
-
-        self.encoder = encoder
         self.generator = generator
+        self.encoder = encoder
+
+        if self.encoder is not None:
+            assert isinstance(encoder, EncoderMixin)
+            assert self.generator.get_encoding_length() == self.encoder.get_encoding_length(), "Both generator and encoder must use the same size encoding"
+
+
         # self._is_fitted = True
         # self._apply_fit = apply_fit
         # self._apply_predict = apply_predict
         # self.set_params(clip_values=clip_values, bit_depth=bit_depth)
 
     def __call__(self, x_adv, y=None, **kwargs):
-        """
-        Apply DefenceGan to sample `x`.
 
-        :param x: Sample to squeeze. `x` values are expected to be in the data range provided by `clip_values`.
-        :type x: `np.ndarrray`
-        :param y: Labels of the sample `x`. This function does not affect them in any way.
-        :type y: `np.ndarray`
-        :return: Squeezed sample.
-        :rtype: `np.ndarray`
-        """
-        unmodified_z_value = self.encoder.encode(x_adv)
+        batch_size = x_adv.shape[0]
 
-        logger.info("Encoded x into Z encoding")
+        if self.encoder is not None:
+            initial_z_encoding = self.encoder.encode(x_adv)
+            logger.info("Encoded x_adv into initial z encoding")
+        else:
+            initial_z_encoding = np.random.rand(batch_size, self.generator.get_encoding_length())
+            logger.info("Choosing a random initial z encoding")
 
+        # latent_dim = self.generator.get_encoding_length()
 
-        latent_dim = 128  # TODO remove this
-        batch_size = 50 # TODO remove this
-
-        # random_z0_modifier = np.random.rand(batch_size, latent_dim)
-
-        def generator_derivatives(z_i_modifier):
-
-            z_i_modifier_reshaped = np.reshape(z_i_modifier, [batch_size, latent_dim])
-            # grad = self.generator.loss_gradient(unmodified_z_value, z_i_modifier_reshaped, x_adv)
-            grad = self.generator.new_loss_gradient(z_i_modifier_reshaped, x_adv)
-
-
+        def func_gen_gradients(z_i):
+            z_i_reshaped = np.reshape(z_i, [batch_size, self.generator.get_encoding_length()])
+            grad = self.generator.loss_gradient(z_i_reshaped, x_adv)
             grad = np.float64(grad) # scipy fortran code seems to expect float64 not 32 https://github.com/scipy/scipy/issues/5832
-            #TODO needs to return shape (n,)
             return grad.flatten()
 
-        def func_loss_calculation(z_i_modifier):
-            # source_representation = self.estimator.get_activations(
-            #     x=x_i.reshape(-1, *self.estimator.input_shape), layer=self.layer, batch_size=self.batch_size
-            # )
-            #
-            # n = norm(source_representation.flatten() - guide_representation.flatten(), ord=2) ** 2
-            z_i_modifier_reshaped = np.reshape(z_i_modifier, [batch_size, latent_dim])
-            image_projected = self.generator.project(z_i_modifier_reshaped)
+        def func_loss(z_i):
+            z_i_reshaped = np.reshape(z_i, [batch_size, self.generator.get_encoding_length()])
+            y_i = self.generator.project(z_i_reshaped)
+            mse = mean_squared_error(x_adv.flatten(), y_i.flatten())
 
-            #TODO maybe I could simply get the loss from the ts graph here too
-
-            mse = mean_squared_error(x_adv.flatten(), image_projected.flatten())
-
+            # TODO maybe I could simply get the loss from the ts graph here too?
             # self.image_rec_loss = tf.reduce_mean(tf.square(self.z_hats_recs - timg_tiled_rr), axis=axes)
 
             return mse
@@ -135,31 +119,10 @@ class DefenceGan(Preprocessor):
                 )
 
         options.update(kwargs)
-        optimized_modifier_flat = minimize(func_loss_calculation, unmodified_z_value, jac=generator_derivatives, method="L-BFGS-B", options=options)
-        optimized_modifier = np.reshape(optimized_modifier_flat.x,[batch_size,latent_dim])
-        image_projected = self.generator.project(optimized_modifier)
-        # image_projected = self.generator.project(unmodified_z_value, random_z0_modifier)
-
-        return image_projected
-
-        # generator_reconstructor = GeneratorReconstructor(batch_size)
-
-        #TODO use the gradients from generate to adjust multiple times the modifier
-
-        # x_defended = self.generator.generate_image_killian(unmodified_z_value)
-        #
-        # logger.info("Generated defended x from Z encoding")
-        # return x_defended
-        # x_normalized = x - self.clip_values[0]
-        # x_normalized = x_normalized / (self.clip_values[1] - self.clip_values[0])
-        #
-        # max_value = np.rint(2 ** self.bit_depth - 1)
-        # res = np.rint(x_normalized * max_value) / max_value
-        #
-        # res = res * (self.clip_values[1] - self.clip_values[0])
-        # res = res + self.clip_values[0]
-        #
-        # return res, y
+        optimized_z_encoding_flat = minimize(func_loss, initial_z_encoding, jac=func_gen_gradients, method="L-BFGS-B", options=options)
+        optimized_z_encoding = np.reshape(optimized_z_encoding_flat.x,[batch_size, self.generator.get_encoding_length()])
+        y = self.generator.project(optimized_z_encoding)
+        return y
 
 
     @property

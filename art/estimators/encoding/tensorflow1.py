@@ -104,6 +104,8 @@ class Tensorflow1Encoder(EncoderMixin, TensorFlowEstimator):  # lgtm [py/missing
     def predict(self, x, batch_size=128, **kwargs):
         pass
 
+    def get_encoding_length(self):
+        return self._output.shape[1]
 
     def loss_gradient(self, x, y, **kwargs):
         """
