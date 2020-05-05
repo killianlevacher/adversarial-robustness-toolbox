@@ -21,11 +21,7 @@ This module implements the classifier `TensorFlowEncoder` for TensorFlow models.
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
-import random
 import tensorflow as tf
-
-import numpy as np
-import six
 
 from art.estimators.tensorflow import TensorFlowEstimator, TensorFlowV2Estimator
 from art.estimators.encoding.encoder import EncoderMixin
@@ -77,17 +73,9 @@ class Tensorflow1Encoder(EncoderMixin, TensorFlowEstimator):  # lgtm [py/missing
         if self._loss is not None:
             self._loss_grads = tf.gradients(self._loss, self._input_ph)[0]
 
-    def encode(self, x_train):
-        z_encoding = self._sess.run(self._model, feed_dict={self._input_ph: x_train})
-
-        return z_encoding
-
-    def predict(self, x, batch_size=128, **kwargs):
-        pass
-
-    @property
-    def encoding_length(self):
-        return self._encoding_length
+    def predict(self, x, **kwargs):
+        y = self._sess.run(self._model, feed_dict={self._input_ph: x})
+        return y
 
     def fit(self, x, y, batch_size=128, nb_epochs=10, **kwargs):
         pass
@@ -100,3 +88,7 @@ class Tensorflow1Encoder(EncoderMixin, TensorFlowEstimator):  # lgtm [py/missing
 
     def loss_gradient(self, z_encoding, image_adv):
         pass
+
+    @property
+    def encoding_length(self):
+        return self._encoding_length

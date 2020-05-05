@@ -21,11 +21,7 @@ This module implements the classifier `TensorFlowGenerator` for TensorFlow model
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
-import random
 import tensorflow as tf
-
-import numpy as np
-import six
 
 from art.estimators.tensorflow import TensorFlowEstimator, TensorFlowV2Estimator
 from art.estimators.generation.generator import GeneratorMixin
@@ -75,11 +71,14 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
             # TODO do the same thing for all not None variables
         self._sess = sess
 
-    def predict(self, unmodified_z_value, input_modifier):
-        # Apply preprocessing
-        pass
-        # image_value = self._sess.run(self._output,
-        #                              feed_dict={self._input_z: unmodified_z_value})
+    @property
+    def encoding_length(self):
+        return self._encoding_length
+
+    def predict(self, x):
+        logging.info("Projecting new image from z value")
+        y = self._sess.run(self._model, feed_dict={self._input_ph: x})
+        return y
 
     def loss_gradient(self, z_encoding, image_adv):
         logging.info("Calculating Gradients")
@@ -90,23 +89,11 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
 
         return gradient
 
-    @property
-    def encoding_length(self):
-        return self._encoding_length
-
-    def project(self, z_encoding):
-        logging.info("Projecting new image from z value")
-        y = self._sess.run(self._model, feed_dict={self._input_ph: z_encoding})
-
-        return y
-
     def fit(self, x, y, batch_size=128, nb_epochs=10, **kwargs):
         pass
 
-
     def get_activations(self, x, layer, batch_size=128):
         pass
-
 
     def set_learning_phase(self, train):
         pass

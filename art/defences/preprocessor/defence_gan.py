@@ -63,7 +63,7 @@ class DefenceGan(Preprocessor):
         batch_size = x_adv.shape[0]
 
         if self.encoder is not None:
-            initial_z_encoding = self.encoder.encode(x_adv)
+            initial_z_encoding = self.encoder.predict(x_adv)
             logger.info("Encoded x_adv into initial z encoding")
         else:
             initial_z_encoding = np.random.rand(batch_size, self.generator.encoding_length)
@@ -77,7 +77,7 @@ class DefenceGan(Preprocessor):
 
         def func_loss(z_i):
             z_i_reshaped = np.reshape(z_i, [batch_size, self.generator.encoding_length])
-            y_i = self.generator.project(z_i_reshaped)
+            y_i = self.generator.predict(z_i_reshaped)
             mse = mean_squared_error(x_adv.flatten(), y_i.flatten())
 
             # TODO should I instead simply get the loss from the ts graph here too?
@@ -111,7 +111,7 @@ class DefenceGan(Preprocessor):
         options.update(kwargs)
         optimized_z_encoding_flat = minimize(func_loss, initial_z_encoding, jac=func_gen_gradients, method="L-BFGS-B", options=options)
         optimized_z_encoding = np.reshape(optimized_z_encoding_flat.x,[batch_size, self.generator.encoding_length])
-        y = self.generator.project(optimized_z_encoding)
+        y = self.generator.predict(optimized_z_encoding)
         return y
 
 
