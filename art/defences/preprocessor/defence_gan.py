@@ -62,11 +62,13 @@ class DefenceGan(Preprocessor):
         batch_size = x_adv.shape[0]
 
         if self.encoder is not None:
+            logger.info("Encoding x_adv into initial z encoding")
             initial_z_encoding = self.encoder.predict(x_adv)
-            logger.info("Encoded x_adv into initial z encoding")
+
         else:
-            initial_z_encoding = np.random.rand(batch_size, self.generator.encoding_length)
             logger.info("Choosing a random initial z encoding")
+            initial_z_encoding = np.random.rand(batch_size, self.generator.encoding_length)
+
 
         def func_gen_gradients(z_i):
             z_i_reshaped = np.reshape(z_i, [batch_size, self.generator.encoding_length])

@@ -113,6 +113,7 @@ class Tensorflow1Encoder(EncoderMixin, TensorFlowEstimator):  # lgtm [py/missing
         :return: Array of encoding predictions of shape `(num_inputs, encoding_length)`.
         :rtype: `np.ndarray`
         """
+        logger.info("Encoding input")
         y = self._sess.run(self._model, feed_dict={self._input_ph: x})
         return y
 
