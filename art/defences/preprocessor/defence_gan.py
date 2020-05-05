@@ -181,27 +181,3 @@ class DefenceGan(Preprocessor):
         No parameters to learn for this method; do nothing.
         """
         pass
-
-    # def set_params(self, **kwargs):
-    #     """
-    #     Take in a dictionary of parameters and applies defence-specific checks before saving them as attributes.
-    #
-    #     :param clip_values: Tuple of the form `(min, max)` representing the minimum and maximum values allowed
-    #            for features.
-    #     :type clip_values: `tuple`
-    #     :param bit_depth: The number of bits per channel for encoding the data.
-    #     :type bit_depth: `int`
-    #     """
-    #     # Save defence-specific parameters
-    #     super(DefenceGan, self).set_params(**kwargs)
-    #
-    #     if not isinstance(self.bit_depth, (int, np.int)) or self.bit_depth <= 0 or self.bit_depth > 64:
-    #         raise ValueError("The bit depth must be between 1 and 64.")
-    #
-    #     if len(self.clip_values) != 2:
-    #         raise ValueError("`clip_values` should be a tuple of 2 floats containing the allowed data range.")
-    #
-    #     if np.array(self.clip_values[0] >= self.clip_values[1]).any():
-    #         raise ValueError("Invalid `clip_values`: min >= max.")
-    #
-    #     return True
