@@ -116,13 +116,22 @@ class DefenceGan(Preprocessor):
 
     @property
     def apply_fit(self):
+        """
+        do nothing.
+        """
         pass
 
     @property
     def apply_predict(self):
+        """
+        do nothing.
+        """
         pass
 
     def estimate_gradient(self, x, grad):
+        """
+        do nothing.
+        """
         pass
         # return grad
 

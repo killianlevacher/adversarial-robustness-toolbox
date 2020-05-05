@@ -124,50 +124,11 @@ def main():
     logger.info("Accuracy on adversarial examples: {}%".format(accuracy_adv * 100))
 
 
-    ####### TEST
-    generator = GeneratorReconstructor(batch_size)
-
-    generator.sess.run(generator.init_opt)
-
-    # # image_generated_tensor = generator.generate_image_projected_tensor()
-    #
-    # random_z0_modifier = np.random.rand(50, 128)
-    # test_result = generator.sess.run(generator.z_hats_recs,
-    #                            feed_dict={generator.image_adverse_placeholder: x_train_adv,
-    #                                       generator.z_general_placeholder: random_z0_modifier})
-    #
-    #
-    # # gradient_tensor = generator.generate_gradient_tensor(generator.z_init_input_placeholder,
-    # #                                                      generator.modifier_placeholder,
-    # #                                                      generator.image_adverse_placeholder,
-    # #                                                      batch_size=generator.batch_size,
-    # #                                                      reconstructor_id=3)
-    #
-    #
-
-    # random_z0_modifier = np.random.rand(batch_size, 128)
-    #
-    # result = generator.sess.run(generator.image_rec_loss,
-    #                             feed_dict={generator.image_adverse_placeholder: x_train_adv,
-    #                                        generator.z_general_placeholder: random_z0_modifier})
-
-    # tmp =""
-    # # gradients_value = generator.sess.run(generator._new_grad,
-    # #                            feed_dict={generator.image_adverse_placeholder: x_train_adv,
-    # #                                       generator.z_init_input_placeholder: random_z0_modifier,
-    # #                                       generator.modifier_placeholder: random_z0_modifier})
-    #
-    #
-    # result = generator.sess.run(generator.z_hats_recs,
-    #                            feed_dict={generator.image_adverse_placeholder: x_train_adv,
-    #                                       generator.z_general_placeholder: random_z0_modifier})
-
-    ######## STEP 5 Create Encoder and Generator
+    ######## STEP 5 Create DefenceGan
 
     encoder = create_ts1_encoder_model(batch_size)
     generator = create_ts1_generator_model(batch_size)
 
-    ######## STEP 5 Create DefenceGan
     defenceGan = DefenceGan(generator, encoder)
 
     #generate the defended sample
