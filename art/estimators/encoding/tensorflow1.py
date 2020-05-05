@@ -63,12 +63,8 @@ class Tensorflow1Encoder(EncoderMixin, TensorFlowEstimator):  # lgtm [py/missing
         if self._loss is not None:
             self._loss_grads = tf.gradients(self._loss, self._input_ph)[0]
 
-
     def encode(self, x_train):
         z_encoding = self._sess.run(self._model, feed_dict={self._input_ph: x_train})
-        # unmodified_z_value = self.sess.run(self.unmodified_z_tensor, feed_dict={self.images_tensor: x_train})
-
-        # unmodified_z_value = self._sess.run(self._output, feed_dict={self._input_ph: image})
 
         return z_encoding
 

@@ -42,8 +42,6 @@ class DefenceGan(Preprocessor):
 
     """
 
-    # params = ["clip_values", "bit_depth"]
-
     def __init__(self, generator, encoder=None):
         # def __init__(self, clip_values, bit_depth=8, apply_fit=False, apply_predict=True):
         """
@@ -60,12 +58,6 @@ class DefenceGan(Preprocessor):
             assert isinstance(encoder, EncoderMixin)
             assert self.generator.get_encoding_length() == self.encoder.get_encoding_length(), "Both generator and encoder must use the same size encoding"
 
-
-        # self._is_fitted = True
-        # self._apply_fit = apply_fit
-        # self._apply_predict = apply_predict
-        # self.set_params(clip_values=clip_values, bit_depth=bit_depth)
-
     def __call__(self, x_adv, y=None, **kwargs):
 
         batch_size = x_adv.shape[0]
@@ -76,8 +68,6 @@ class DefenceGan(Preprocessor):
         else:
             initial_z_encoding = np.random.rand(batch_size, self.generator.get_encoding_length())
             logger.info("Choosing a random initial z encoding")
-
-        # latent_dim = self.generator.get_encoding_length()
 
         def func_gen_gradients(z_i):
             z_i_reshaped = np.reshape(z_i, [batch_size, self.generator.get_encoding_length()])
@@ -90,7 +80,7 @@ class DefenceGan(Preprocessor):
             y_i = self.generator.project(z_i_reshaped)
             mse = mean_squared_error(x_adv.flatten(), y_i.flatten())
 
-            # TODO maybe I could simply get the loss from the ts graph here too?
+            # TODO should I instead simply get the loss from the ts graph here too?
             # self.image_rec_loss = tf.reduce_mean(tf.square(self.z_hats_recs - timg_tiled_rr), axis=axes)
 
             return mse
@@ -128,12 +118,10 @@ class DefenceGan(Preprocessor):
     @property
     def apply_fit(self):
         pass
-    #     return self._apply_fit
 
     @property
     def apply_predict(self):
         pass
-    #     return self._apply_predict
 
     def estimate_gradient(self, x, grad):
         pass

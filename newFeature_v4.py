@@ -70,15 +70,9 @@ def create_ts1_encoder_model(batch_size):
     sess, unmodified_z_tensor, images_tensor = encoder_reconstructor.generate_z_extrapolated_killian()
 
     encoder = Tensorflow1Encoder(
-        # clip_values=(min_pixel_value, max_pixel_value),
         input_ph=images_tensor,
         model=unmodified_z_tensor,
-        # labels_ph=labels_ph,
-        # train=train,
-        # loss=loss,
-        # learning=None,
         sess=sess,
-        # preprocessing_defences=[]
     )
 
     return encoder
@@ -90,18 +84,11 @@ def create_ts1_generator_model(batch_size):
     # sess, image_generated_tensor, image_rec_loss_test, z_init_input_placeholder, modifier_placeholder, gradient_tensor, image_adverse_tensor = generator_reconstructor.generate_image_projected_tensor()
 
     generator = Tensorflow1Generator(
-        # clip_values=(min_pixel_value, max_pixel_value),
         input_ph=generator.z_general_placeholder,
-        # input_modifier=generator.modifier_placeholder,
         model=generator.z_hats_recs,
-        # labels_ph=labels_ph,
-        # train=train,
         loss=generator.image_rec_loss,
         image_adv=generator.image_adverse_placeholder,
-        # grad=gradient_tensor,
-        # learning=None,
         sess=generator.sess,
-        # preprocessing_defences=[]
     )
 
     return generator
