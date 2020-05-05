@@ -43,7 +43,6 @@ class DefenceGan(Preprocessor):
     """
 
     def __init__(self, generator, encoder=None):
-        # def __init__(self, clip_values, bit_depth=8, apply_fit=False, apply_predict=True):
         """
         Create an instance of DefenceGAN.
 
@@ -85,9 +84,9 @@ class DefenceGan(Preprocessor):
 
             return mse
 
-        options = {"maxiter":1} #TODO remove that maxiter value post debugging
+        options = {"maxiter":1}
+        # options = {}
 
-        #TODO update these options based on the final alg I will be using
         options_allowed_keys = [
             "disp",
             "maxcor",
