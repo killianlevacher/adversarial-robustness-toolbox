@@ -46,9 +46,23 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
             image_adv=None,
             loss=None,
             sess=None,
-            feed_dict={}
+            feed_dict={},
+            channel_index=3,
+            clip_values=None,
+            preprocessing_defences=None,
+            postprocessing_defences=None,
+            preprocessing=(0, 1)
     ):
+        super(Tensorflow1Generator, self).__init__(
+            clip_values=clip_values,
+            channel_index=channel_index,
+            preprocessing_defences=preprocessing_defences,
+            postprocessing_defences=postprocessing_defences,
+            preprocessing=preprocessing,
+        )
+
         self._input_ph = input_ph
+        self._encoding_length = self._input_ph.shape[1]
         self._image_adv = image_adv
         self._model = model
         self._loss = loss
@@ -76,13 +90,13 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
 
         return gradient
 
-    def get_encoding_length(self):
-        return self._input_ph.shape[1]
+    @property
+    def encoding_length(self):
+        return self._encoding_length
 
     def project(self, z_encoding):
         logging.info("Projecting new image from z value")
-        y = self._sess.run(self._model,
-                                     feed_dict={self._input_ph: z_encoding})
+        y = self._sess.run(self._model, feed_dict={self._input_ph: z_encoding})
 
         return y
 

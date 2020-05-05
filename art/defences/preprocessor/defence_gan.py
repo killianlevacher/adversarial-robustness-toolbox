@@ -56,7 +56,7 @@ class DefenceGan(Preprocessor):
 
         if self.encoder is not None:
             assert isinstance(encoder, EncoderMixin)
-            assert self.generator.get_encoding_length() == self.encoder.get_encoding_length(), "Both generator and encoder must use the same size encoding"
+            assert self.generator.encoding_length == self.encoder.encoding_length, "Both generator and encoder must use the same size encoding"
 
     def __call__(self, x_adv, y=None, **kwargs):
 
@@ -66,17 +66,17 @@ class DefenceGan(Preprocessor):
             initial_z_encoding = self.encoder.encode(x_adv)
             logger.info("Encoded x_adv into initial z encoding")
         else:
-            initial_z_encoding = np.random.rand(batch_size, self.generator.get_encoding_length())
+            initial_z_encoding = np.random.rand(batch_size, self.generator.encoding_length)
             logger.info("Choosing a random initial z encoding")
 
         def func_gen_gradients(z_i):
-            z_i_reshaped = np.reshape(z_i, [batch_size, self.generator.get_encoding_length()])
+            z_i_reshaped = np.reshape(z_i, [batch_size, self.generator.encoding_length])
             grad = self.generator.loss_gradient(z_i_reshaped, x_adv)
             grad = np.float64(grad) # scipy fortran code seems to expect float64 not 32 https://github.com/scipy/scipy/issues/5832
             return grad.flatten()
 
         def func_loss(z_i):
-            z_i_reshaped = np.reshape(z_i, [batch_size, self.generator.get_encoding_length()])
+            z_i_reshaped = np.reshape(z_i, [batch_size, self.generator.encoding_length])
             y_i = self.generator.project(z_i_reshaped)
             mse = mean_squared_error(x_adv.flatten(), y_i.flatten())
 
@@ -110,7 +110,7 @@ class DefenceGan(Preprocessor):
 
         options.update(kwargs)
         optimized_z_encoding_flat = minimize(func_loss, initial_z_encoding, jac=func_gen_gradients, method="L-BFGS-B", options=options)
-        optimized_z_encoding = np.reshape(optimized_z_encoding_flat.x,[batch_size, self.generator.get_encoding_length()])
+        optimized_z_encoding = np.reshape(optimized_z_encoding_flat.x,[batch_size, self.generator.encoding_length])
         y = self.generator.project(optimized_z_encoding)
         return y
 

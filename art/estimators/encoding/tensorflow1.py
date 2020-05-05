@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 class Tensorflow1Encoder(EncoderMixin, TensorFlowEstimator):  # lgtm [py/missing-call-to-init]
     """
-    This class implements an encoding with the TensorFlow framework.
+    This class implements an encoder with the TensorFlow framework.
     """
 
     def __init__(
@@ -45,12 +45,26 @@ class Tensorflow1Encoder(EncoderMixin, TensorFlowEstimator):  # lgtm [py/missing
         loss=None,
         sess=None,
         feed_dict={},
+        channel_index=3,
+        clip_values=None,
+        preprocessing_defences=None,
+        postprocessing_defences=None,
+        preprocessing=(0, 1)
     ):
+
+        super(Tensorflow1Encoder, self).__init__(
+            clip_values=clip_values,
+            channel_index=channel_index,
+            preprocessing_defences=preprocessing_defences,
+            postprocessing_defences=postprocessing_defences,
+            preprocessing=preprocessing,
+        )
 
         self._nb_classes = int(model.get_shape()[-1])
         self._input_shape = tuple(input_ph.get_shape().as_list()[1:])
         self._input_ph = input_ph
         self._model = model
+        self._encoding_length = self._model.shape[1]
         self._loss = loss
         self._feed_dict = feed_dict
 
@@ -71,8 +85,9 @@ class Tensorflow1Encoder(EncoderMixin, TensorFlowEstimator):  # lgtm [py/missing
     def predict(self, x, batch_size=128, **kwargs):
         pass
 
-    def get_encoding_length(self):
-        return self._model.shape[1]
+    @property
+    def encoding_length(self):
+        return self._encoding_length
 
     def fit(self, x, y, batch_size=128, nb_epochs=10, **kwargs):
         pass
