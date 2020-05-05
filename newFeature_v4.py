@@ -72,7 +72,7 @@ def create_ts1_encoder_model(batch_size):
     encoder = Tensorflow1Encoder(
         # clip_values=(min_pixel_value, max_pixel_value),
         input_ph=images_tensor,
-        output=unmodified_z_tensor,
+        model=unmodified_z_tensor,
         # labels_ph=labels_ph,
         # train=train,
         # loss=loss,
@@ -91,9 +91,9 @@ def create_ts1_generator_model(batch_size):
 
     generator = Tensorflow1Generator(
         # clip_values=(min_pixel_value, max_pixel_value),
-        input_z=generator.z_general_placeholder,
+        input_ph=generator.z_general_placeholder,
         # input_modifier=generator.modifier_placeholder,
-        output=generator.z_hats_recs,
+        model=generator.z_hats_recs,
         # labels_ph=labels_ph,
         # train=train,
         loss=generator.image_rec_loss,

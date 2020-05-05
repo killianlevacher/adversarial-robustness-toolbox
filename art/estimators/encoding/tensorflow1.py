@@ -22,6 +22,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import logging
 import random
+import tensorflow as tf
 
 import numpy as np
 import six
@@ -40,38 +41,17 @@ class Tensorflow1Encoder(EncoderMixin, TensorFlowEstimator):  # lgtm [py/missing
     def __init__(
         self,
         input_ph,
-        output,
-        # labels_ph=None,
-        # train=None,
+        model,
         loss=None,
-        # learning=None,
         sess=None,
-        # channel_index=3,
-        # clip_values=None,
-        # preprocessing_defences=None,
-        # postprocessing_defences=None,
-        # preprocessing=(0, 1),
         feed_dict={},
     ):
 
-        # pylint: disable=E0401
-        import tensorflow as tf
-
-        super(Tensorflow1Encoder, self).__init__(
-            # clip_values=clip_values,
-            # channel_index=channel_index,
-            # preprocessing_defences=preprocessing_defences,
-            # postprocessing_defences=postprocessing_defences,
-            # preprocessing=preprocessing,
-        )
-        self._nb_classes = int(output.get_shape()[-1])
+        self._nb_classes = int(model.get_shape()[-1])
         self._input_shape = tuple(input_ph.get_shape().as_list()[1:])
         self._input_ph = input_ph
-        self._output = output
-        # self._labels_ph = labels_ph
-        # self._train = train
+        self._model = model
         self._loss = loss
-        # self._learning = learning
         self._feed_dict = feed_dict
 
         # Assign session
@@ -79,68 +59,24 @@ class Tensorflow1Encoder(EncoderMixin, TensorFlowEstimator):  # lgtm [py/missing
             raise ValueError("A session cannot be None.")
         self._sess = sess
 
-        # Get the internal layers
-        # self._layer_names = self._get_layers()
-
         # Get the loss gradients graph
         if self._loss is not None:
             self._loss_grads = tf.gradients(self._loss, self._input_ph)[0]
 
-        # Check if the loss function requires as input index labels instead of one-hot-encoded labels
-        # if len(self._labels_ph.shape) == 1:
-        #     self._reduce_labels = True
-        # else:
-        #     self._reduce_labels = False
-
 
     def encode(self, x_train):
-        unmodified_z_value = self._sess.run(self._output, feed_dict={self._input_ph: x_train})
+        z_encoding = self._sess.run(self._model, feed_dict={self._input_ph: x_train})
         # unmodified_z_value = self.sess.run(self.unmodified_z_tensor, feed_dict={self.images_tensor: x_train})
 
         # unmodified_z_value = self._sess.run(self._output, feed_dict={self._input_ph: image})
 
-        return unmodified_z_value
+        return z_encoding
 
     def predict(self, x, batch_size=128, **kwargs):
         pass
 
     def get_encoding_length(self):
-        return self._output.shape[1]
-
-    def loss_gradient(self, x, y, **kwargs):
-        """
-        Compute the gradient of the loss function w.r.t. `x`.
-
-        :param x: Sample input with shape as expected by the model.
-        :type x: `np.ndarray`
-        :param y: Target values (class labels) one-hot-encoded of shape (nb_samples, nb_classes) or indices of shape
-                  (nb_samples,).
-        :type y: `np.ndarray`
-        :return: Array of gradients of the same shape as `x`.
-        :rtype: `np.ndarray`
-        """
-        # Apply preprocessing
-        x_preprocessed, y_preprocessed = self._apply_preprocessing(x, y, fit=False)
-
-        # Check if loss available
-        if not hasattr(self, "_loss_grads") or self._loss_grads is None or self._labels_ph is None:
-            raise ValueError("Need the loss function and the labels placeholder to compute the loss gradient.")
-
-        # Check label shape
-        if self._reduce_labels:
-            y_preprocessed = np.argmax(y_preprocessed, axis=1)
-
-        # Create feed_dict
-        feed_dict = {self._input_ph: x_preprocessed, self._labels_ph: y_preprocessed}
-        feed_dict.update(self._feed_dict)
-
-        # Compute gradients
-        grads = self._sess.run(self._loss_grads, feed_dict=feed_dict)
-        grads = self._apply_preprocessing_gradient(x, grads)
-        assert grads.shape == x_preprocessed.shape
-
-        return grads
-
+        return self._model.shape[1]
 
     def fit(self, x, y, batch_size=128, nb_epochs=10, **kwargs):
         pass
@@ -149,4 +85,7 @@ class Tensorflow1Encoder(EncoderMixin, TensorFlowEstimator):  # lgtm [py/missing
         pass
 
     def set_learning_phase(self, train):
+        pass
+
+    def loss_gradient(self, z_encoding, image_adv):
         pass
