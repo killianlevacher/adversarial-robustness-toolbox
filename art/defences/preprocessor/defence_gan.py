@@ -61,22 +61,36 @@ class DefenceGan(Preprocessor):
 
         batch_size = x_adv.shape[0]
 
-        if self.encoder is not None:
-            logger.info("Encoding x_adv into initial z encoding")
-            initial_z_encoding = self.encoder.predict(x_adv)
+        # if self.encoder is not None:
+        #     logger.info("Encoding x_adv into initial z encoding")
+        #     initial_z_encoding = self.encoder.predict(x_adv)
+        #
+        # else:
+        #     logger.info("Choosing a random initial z encoding")
+        #     initial_z_encoding = np.random.rand(batch_size, self.generator.encoding_length)
+        initial_z_encoding = np.random.rand(batch_size, self.generator.encoding_length)
 
-        else:
-            logger.info("Choosing a random initial z encoding")
-            initial_z_encoding = np.random.rand(batch_size, self.generator.encoding_length)
 
+        z_i_list = []
+        grad_i_list = []
 
         def func_gen_gradients(z_i):
             z_i_reshaped = np.reshape(z_i, [batch_size, self.generator.encoding_length])
             grad = self.generator.loss_gradient(z_i_reshaped, x_adv)
             grad = np.float64(grad) # scipy fortran code seems to expect float64 not 32 https://github.com/scipy/scipy/issues/5832
+            grad_i_list.append(grad)
+
+            if len(grad_i_list) > 2:
+                dif = grad_i_list[-2] - grad_i_list[-1]
+                tmp = ""
             return grad.flatten()
 
         def func_loss(z_i):
+            z_i_list.append(z_i)
+            if len(z_i_list) > 2:
+                dif = z_i_list[-2] - z_i_list[-1]
+                tmp = ""
+            logging.info("Iteration: {0}".format(len(z_i_list)))
             z_i_reshaped = np.reshape(z_i, [batch_size, self.generator.encoding_length])
             y_i = self.generator.predict(z_i_reshaped)
             mse = mean_squared_error(x_adv.flatten(), y_i.flatten())
@@ -86,7 +100,8 @@ class DefenceGan(Preprocessor):
 
             return mse
 
-        options = {"maxiter":1}
+        options = {"maxiter":200,
+                   "maxfun":200}
         # options = {}
 
         options_allowed_keys = [
@@ -112,7 +127,26 @@ class DefenceGan(Preprocessor):
         options.update(kwargs)
         optimized_z_encoding_flat = minimize(func_loss, initial_z_encoding, jac=func_gen_gradients, method="L-BFGS-B", options=options)
         optimized_z_encoding = np.reshape(optimized_z_encoding_flat.x,[batch_size, self.generator.encoding_length])
+
         y = self.generator.predict(optimized_z_encoding)
+
+        previous_z_i = initial_z_encoding.flatten()
+        equal_trail = []
+        difference_trail = []
+        for new_z_i in z_i_list:
+            dif = new_z_i - previous_z_i
+            difference_trail.append(dif)
+            equal = (previous_z_i == new_z_i).all()
+            equal_trail.append(equal)
+            previous_z_i = new_z_i
+
+        difference_grad = []
+        previous_grad_i = grad_i_list[0]
+        for grad_i in grad_i_list:
+            difference_grad.append(grad_i - previous_grad_i)
+            previous_grad_i = grad_i
+
+        tmp = ""
         return y
 
 
