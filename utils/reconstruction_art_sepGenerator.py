@@ -69,12 +69,12 @@ class GeneratorReconstructor(object):
 
 
         #TODO to include in TS1Generator
-        self.image_rec_loss = tf.reduce_mean(tf.square(self.z_hats_recs - self.timg_tiled_rr), axis=self.axes)
+        image_rec_loss = tf.reduce_mean(tf.square(self.z_hats_recs - self.timg_tiled_rr), axis=self.axes)
 
         #Killian trying a gradient calculation
         # self.grad = tf.gradients(self.image_rec_loss, self.modifier_placeholder)
 
-        rec_loss = tf.reduce_sum(self.image_rec_loss)
+        self.rec_loss = tf.reduce_sum(image_rec_loss)
 
 
 

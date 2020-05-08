@@ -103,6 +103,13 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
             # TODO do the same thing for all not None variables
         self._sess = sess
 
+
+    def tmp_calculate_loss(self, z, image_adv):
+        logging.info("Calculating Loss")
+        y = self._sess.run(self._loss, feed_dict={self._input_ph: z,
+                                                  self._image_adv: image_adv})
+        return y
+
     def predict(self, x):
         """
         Perform prediction a batch of encodings.

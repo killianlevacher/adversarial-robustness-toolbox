@@ -60,6 +60,8 @@ class DefenceGan(Preprocessor):
     def __call__(self, x_adv, y=None, **kwargs):
 
         batch_size = x_adv.shape[0]
+        logging.info("x_adv max {0}".format(np.max(x_adv)))
+        logging.info("x_adv min {0}".format(np.min(x_adv)))
 
         if self.encoder is not None:
             logger.info("Encoding x_adv into initial z encoding")
@@ -122,21 +124,30 @@ class DefenceGan(Preprocessor):
             logging.info("Iteration: {0}".format(len(z_i_list)))
             z_i_reshaped = np.reshape(z_i, [batch_size, self.generator.encoding_length])
             y_i = self.generator.predict(z_i_reshaped)
+
+            logging.info("y_i max {0}".format(np.max(y_i)))
+            logging.info("y_i min {0}".format(np.min(y_i)))
+            logging.info("y_i min {0}".format(np.mean(y_i)))
             # y_i_2 = self.generator.predict(z_i_reshaped)
             # exaclty_equal = np.all(y_i == y_i_2)
             # almost_equal = np.testing.assert_almost_equal(y_i, y_i_2, decimal=10)
             mse = mean_squared_error(x_adv.flatten(), y_i.flatten())
+
+            loss = self.generator.tmp_calculate_loss(z_i_reshaped, x_adv)
             # mse_2 = mean_squared_error(x_adv.flatten(), y_i_2.flatten())
             # if mse != mse_2:
             #     tmp =""
             # TODO should I instead simply get the loss from the ts graph here too?
             # self.image_rec_loss = tf.reduce_mean(tf.square(self.z_hats_recs - timg_tiled_rr), axis=axes)
+            mse = mse *10000
             mse_list.append(mse)
+            logging.info("mse: {0}".format(mse))
+            logging.info("loss: {0}".format(loss))
             return mse
 
-        options = {"maxiter":200,
-                   "maxfun":200}
-        # options = {}
+        # options = {"maxiter":100,
+        #            "maxfun":100}
+        options = {}
 
         options_allowed_keys = [
             "disp",
@@ -160,7 +171,7 @@ class DefenceGan(Preprocessor):
 
         options.update(kwargs)
 
-        # optimized_z_encoding_flat = minimize(func_loss, initial_z_encoding, jac=func_gen_gradients, method="SLSQP", options=options)
+        # optimized_z_encoding_flat = minimize(func_loss, initial_z_encoding, jac=func_gen_gradients, method="Powell", options=options)
         optimized_z_encoding_flat = minimize(func_loss, initial_z_encoding, jac=func_gen_gradients, method="L-BFGS-B", options=options)
         optimized_z_encoding = np.reshape(optimized_z_encoding_flat.x,[batch_size, self.generator.encoding_length])
 
@@ -175,6 +186,9 @@ class DefenceGan(Preprocessor):
             equal = (previous_z_i == new_z_i).all()
             equal_trail.append(equal)
             previous_z_i = new_z_i
+
+        for mse in mse_list:
+            print("mse {0}".format(mse))
 
         difference_grad = []
         previous_grad_i = grad_i_list[0]
