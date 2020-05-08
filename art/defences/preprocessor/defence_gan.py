@@ -61,18 +61,21 @@ class DefenceGan(Preprocessor):
 
         batch_size = x_adv.shape[0]
 
-        # if self.encoder is not None:
-        #     logger.info("Encoding x_adv into initial z encoding")
-        #     initial_z_encoding = self.encoder.predict(x_adv)
-        #
-        # else:
-        #     logger.info("Choosing a random initial z encoding")
-        #     initial_z_encoding = np.random.rand(batch_size, self.generator.encoding_length)
-        initial_z_encoding = np.random.rand(batch_size, self.generator.encoding_length)
+        if self.encoder is not None:
+            logger.info("Encoding x_adv into initial z encoding")
+            initial_z_encoding = self.encoder.predict(x_adv)
+
+        else:
+            logger.info("Choosing a random initial z encoding")
+            initial_z_encoding = np.random.rand(batch_size, self.generator.encoding_length)
+        # initial_z_encoding = np.random.rand(batch_size, self.generator.encoding_length)
 
 
         z_i_list = []
         grad_i_list = []
+        mse_list = []
+        z_exaclty_equal_list = []
+        z_almost_equal_list = []
 
         def func_gen_gradients(z_i):
             z_i_reshaped = np.reshape(z_i, [batch_size, self.generator.encoding_length])
@@ -86,18 +89,49 @@ class DefenceGan(Preprocessor):
             return grad.flatten()
 
         def func_loss(z_i):
-            z_i_list.append(z_i)
+            z_i_list.append(z_i.copy())
             if len(z_i_list) > 2:
-                dif = z_i_list[-2] - z_i_list[-1]
-                tmp = ""
+
+                # mse_recalculation = []
+                # for z_i_prior in z_i_list:
+                #     z_i_previous_reshaped = np.reshape(z_i_prior, [batch_size, self.generator.encoding_length])
+                #     y_previous = self.generator.predict(z_i_previous_reshaped)
+                #     mse_previous = mean_squared_error(x_adv.flatten(), y_previous.flatten())
+                #     mse_recalculation.append(mse_previous)
+
+                # dif = z_i_list[-2] - z_i_list[-1]
+                # tmp = ""
+                z_exaclty_equal = np.all(z_i_list[-2] == z_i_list[-1])
+                z_exaclty_equal_list.append(z_exaclty_equal)
+                # z_almost_equal = np.testing.assert_almost_equal(z_i_list[-2], z_i_list[-1], decimal=10)
+                # z_almost_equal_list.append(z_almost_equal)
+
+
+            # zprevious_exaclty_equal = np.all(z_i_list[-1] == z_i)
+
+            # z_i_previous_reshaped = np.reshape(z_i_list[-1], [batch_size, self.generator.encoding_length])
+            # y_previous = self.generator.predict(z_i_previous_reshaped)
+
+            # z_i_reshaped = np.reshape(z_i, [batch_size, self.generator.encoding_length])
+            # y_current = self.generator.predict(z_i_reshaped)
+            # y_exaclty_equal = np.all(y_previous == y_current)
+            # mse_previous = mean_squared_error(x_adv.flatten(), y_previous.flatten())
+            # mse_current = mean_squared_error(x_adv.flatten(), y_current.flatten())
+            tmp = ""
+
             logging.info("Iteration: {0}".format(len(z_i_list)))
             z_i_reshaped = np.reshape(z_i, [batch_size, self.generator.encoding_length])
             y_i = self.generator.predict(z_i_reshaped)
+            # y_i_2 = self.generator.predict(z_i_reshaped)
+            # exaclty_equal = np.all(y_i == y_i_2)
+            # almost_equal = np.testing.assert_almost_equal(y_i, y_i_2, decimal=10)
             mse = mean_squared_error(x_adv.flatten(), y_i.flatten())
-
+            # mse_2 = mean_squared_error(x_adv.flatten(), y_i_2.flatten())
+            # if mse != mse_2:
+            #     tmp =""
             # TODO should I instead simply get the loss from the ts graph here too?
             # self.image_rec_loss = tf.reduce_mean(tf.square(self.z_hats_recs - timg_tiled_rr), axis=axes)
-
+            mse_list.append(mse)
             return mse
 
         options = {"maxiter":200,
@@ -125,6 +159,8 @@ class DefenceGan(Preprocessor):
                 )
 
         options.update(kwargs)
+
+        # optimized_z_encoding_flat = minimize(func_loss, initial_z_encoding, jac=func_gen_gradients, method="SLSQP", options=options)
         optimized_z_encoding_flat = minimize(func_loss, initial_z_encoding, jac=func_gen_gradients, method="L-BFGS-B", options=options)
         optimized_z_encoding = np.reshape(optimized_z_encoding_flat.x,[batch_size, self.generator.encoding_length])
 

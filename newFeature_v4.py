@@ -194,14 +194,14 @@ def main():
 
     ######## STEP 1
     logging.info("Creating a TS1 model")
-    # classifier = create_ts1_art_model(min_pixel_value, max_pixel_value)
-    # classifier.fit(x_test, y_test, batch_size=batch_size, nb_epochs=3)
+    classifier = create_ts1_art_model(min_pixel_value, max_pixel_value)
+    classifier.fit(x_test, y_test, batch_size=batch_size, nb_epochs=3)
 
 
     eval_params = {'batch_size': batch_size}
 
-    classifier = createDefMnistARTClassifer()
-    model_logit, model_sess, images_tensor, labels_tensor, pred_train, pred_eval = loadDefenseGanClassifier()
+    # classifier = createDefMnistARTClassifer()
+    # model_logit, model_sess, images_tensor, labels_tensor, pred_train, pred_eval = loadDefenseGanClassifier()
     # accuracy_ = model_eval(
     #     model_sess, images_tensor, labels_tensor, pred_eval, x_test,
     #     y_test, args=eval_params,
@@ -216,9 +216,9 @@ def main():
 
     ######## STEP 3
     logging.info("Generate adversarial examples")
-    # attack = FastGradientMethod(classifier, eps=0.2)
-    # x_train_adv = attack.generate(x=x_test)
-    x_test_adv = create_adv_samples(model_logit, model_sess, batch_size, images_tensor, x_test)
+    attack = FastGradientMethod(classifier, eps=0.2)
+    x_test_adv = attack.generate(x=x_test)
+    # x_test_adv = create_adv_samples(model_logit, model_sess, batch_size, images_tensor, x_test)
     
 
     ######## STEP 4
@@ -235,11 +235,11 @@ def main():
     defence_gan = DefenceGan(generator, encoder)
 
     logging.info("Generating Defended Samples")
-    x_train_defended = defence_gan(x_test_adv)
+    x_test_defended = defence_gan(x_test_adv)
 
     ######## STEP 6
     logging.info("Evaluate the classifier on the defended examples")
-    predictions = classifier.predict(x_train_defended)
+    predictions = classifier.predict(x_test_defended)
     accuracy_defended = np.sum(np.argmax(predictions, axis=1) == np.argmax(y_test, axis=1)) / len(y_test)
 
     logger.info("Accuracy on non adversarial examples: {}%".format(accuracy_non_adv * 100))
