@@ -91,6 +91,8 @@ class DefenceGan(Preprocessor):
             return grad.flatten()
 
         def func_loss(z_i):
+            logging.info("Zi")
+            logging.info(z_i.copy())
             z_i_list.append(z_i.copy())
             if len(z_i_list) > 2:
 
@@ -145,9 +147,9 @@ class DefenceGan(Preprocessor):
             logging.info("loss: {0}".format(loss))
             return mse
 
-        # options = {"maxiter":100,
-        #            "maxfun":100}
-        options = {}
+        options = {"maxiter":500,
+                   "maxfun":500}
+        # options = {}
 
         options_allowed_keys = [
             "disp",
