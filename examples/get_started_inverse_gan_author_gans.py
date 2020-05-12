@@ -1,4 +1,19 @@
-from getting_started_inverse_gan_tflib_layers import *
+# Copyright 2018 The Defense-GAN Authors. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ==============================================================================
+
+from examples.get_started_inverse_gan_tflib_layers import *
 import yaml
 import os
 import time
@@ -9,6 +24,59 @@ from tensorflow.contrib import slim
 from tensorflow.python.ops.losses.losses_impl import Reduction
 
 
+################### Code to load the original defense_gan paper mnist classifier to reproduce paper results
+# Note: model_a is a cleverhans model
+# from utils.network_builder_art import model_a
+
+# def _load_defense_gan_paper_classifier():
+#
+#     config = tf.ConfigProto()
+#     config.gpu_options.allow_growth = True
+#     model_sess = tf.Session(config=config)
+#
+#     x_shape = [28,28,1]
+#     classes = 10
+#     with tf.variable_scope(tf.get_variable_scope(), reuse=tf.AUTO_REUSE):
+#         bb_model = model_a(
+#             input_shape=[None] + x_shape, nb_classes=classes,
+#         )
+#
+#     ### From blackbox_art.prep_bbox
+#     model = bb_model
+#
+#     images_tensor = tf.placeholder(tf.float32, shape=[None] + x_shape)
+#     labels_tensor = tf.placeholder(tf.float32, shape=(None, classes))
+#
+#     used_vars = model.get_params()
+#     pred_train = model.get_logits(images_tensor, dropout=True)
+#     pred_eval = model.get_logits(images_tensor)
+#
+#     path = tf.train.latest_checkpoint('./resources/tmpMnistModel/mnist')
+#     saver = tf.train.Saver(var_list=used_vars)
+#     saver.restore(model_sess, path)
+#     print('[+] BB model loaded successfully ...')
+#
+#     return model, model_sess, images_tensor, labels_tensor, pred_train, pred_eval
+#
+#
+# def create_defense_gan_paper_mnist_art_classifier():
+#     model, model_sess, images_tensor, labels_tensor, pred_train, pred_eval = _load_defense_gan_paper_classifier()
+#
+#     classifier = TFClassifier(
+#         # clip_values=(min_pixel_value, max_pixel_value),
+#         input_ph=images_tensor,
+#         output=pred_eval,
+#         labels_ph=labels_tensor,
+#         # train=train,
+#         # loss=loss,
+#         # learning=None,
+#         sess=model_sess,
+#         preprocessing_defences=[]
+#     )
+#
+#     return classifier
+
+###################
 
 IMSAVE_TRANSFORM_DICT = {
     'mnist': lambda x: x.reshape((len(x), 28, 28)),
@@ -1731,57 +1799,3 @@ class GeneratorReconstructor(object):
 
         print('Reconstruction module initialized...\n')
 
-
-################### Code to load the original defense_gan paper mnist classifier to reproduce paper results
-# Note: model_a is a cleverhans model
-# from utils.network_builder_art import model_a
-
-# def _load_defense_gan_paper_classifier():
-#
-#     config = tf.ConfigProto()
-#     config.gpu_options.allow_growth = True
-#     model_sess = tf.Session(config=config)
-#
-#     x_shape = [28,28,1]
-#     classes = 10
-#     with tf.variable_scope(tf.get_variable_scope(), reuse=tf.AUTO_REUSE):
-#         bb_model = model_a(
-#             input_shape=[None] + x_shape, nb_classes=classes,
-#         )
-#
-#     ### From blackbox_art.prep_bbox
-#     model = bb_model
-#
-#     images_tensor = tf.placeholder(tf.float32, shape=[None] + x_shape)
-#     labels_tensor = tf.placeholder(tf.float32, shape=(None, classes))
-#
-#     used_vars = model.get_params()
-#     pred_train = model.get_logits(images_tensor, dropout=True)
-#     pred_eval = model.get_logits(images_tensor)
-#
-#     path = tf.train.latest_checkpoint('./resources/tmpMnistModel/mnist')
-#     saver = tf.train.Saver(var_list=used_vars)
-#     saver.restore(model_sess, path)
-#     print('[+] BB model loaded successfully ...')
-#
-#     return model, model_sess, images_tensor, labels_tensor, pred_train, pred_eval
-#
-#
-# def create_defense_gan_paper_mnist_art_classifier():
-#     model, model_sess, images_tensor, labels_tensor, pred_train, pred_eval = _load_defense_gan_paper_classifier()
-#
-#     classifier = TFClassifier(
-#         # clip_values=(min_pixel_value, max_pixel_value),
-#         input_ph=images_tensor,
-#         output=pred_eval,
-#         labels_ph=labels_tensor,
-#         # train=train,
-#         # loss=loss,
-#         # learning=None,
-#         sess=model_sess,
-#         preprocessing_defences=[]
-#     )
-#
-#     return classifier
-
-###################

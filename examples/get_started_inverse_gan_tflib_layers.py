@@ -321,51 +321,11 @@ def inblock(x, out_channels, sn=False, update_collection=None, name='inblock'):
 # Loss Functions
 ##################################################################################
 
-def discriminator_loss(loss_func, real, fake):
-
-    real_loss = 0
-    fake_loss = 0
-
-    if loss_func.__contains__('wgan'):
-        real_loss = -tf.reduce_mean(real)
-        fake_loss = tf.reduce_mean(fake)
-
-    if loss_func == 'dcgan':
-        real_loss = tf.losses.sigmoid_cross_entropy(
-            tf.ones_like(real), real, reduction=Reduction.MEAN,
-        )
-        fake_loss = tf.losses.sigmoid_cross_entropy(
-            tf.zeros_like(fake), fake, reduction=Reduction.MEAN,
-        )
-
-    if loss_func == 'hingegan':
-        real_loss = tf.reduce_mean(relu(1 - real))
-        fake_loss = tf.reduce_mean(relu(1 + fake))
-
-    if loss_func == 'ragan':
-        real_loss = tf.reduce_mean(tf.nn.softplus(-(real - tf.reduce_mean(fake))))
-        fake_loss = tf.reduce_mean(tf.nn.softplus(fake - tf.reduce_mean(real)))
-
-    loss = real_loss + fake_loss
-
-    return loss
 
 
-def generator_loss(loss_func, fake):
-    fake_loss = 0
 
-    if loss_func.__contains__('wgan'):
-        fake_loss = -tf.reduce_mean(fake)
 
-    if loss_func == 'dcgan':
-        fake_loss = tf.losses.sigmoid_cross_entropy(
-            fake, tf.ones_like(fake), reduction=Reduction.MEAN,
-        )
 
-    if loss_func == 'hingegan':
-        fake_loss = -tf.reduce_mean(fake)
-
-    return fake_loss
 
 
 def encoder_gan_loss(loss_func, fake):
