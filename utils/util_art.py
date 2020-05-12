@@ -153,7 +153,7 @@ class Dataset(object):
         data_dir: The directory where the dataset resides.
     """
 
-    def __init__(self, name, data_dir='./data_defenceGan'):
+    def __init__(self, name, data_dir='./defence_gan/data/'):
         """The datasaet default constructor.
 
             Args:

@@ -221,7 +221,7 @@ class Mnist(Dataset):
             return self.split_data[split]
 
         # data_dir = self.data_dir
-        data_dir = "./data_defenceGan/mnist"
+        data_dir = "./defence_gan/data/mnist"
         fd = open(os.path.join(data_dir, 'train-images-idx3-ubyte'))
         loaded = np.fromfile(file=fd, dtype=np.uint8)
         train_images = loaded[16:].reshape((60000, 28, 28, 1)).astype(np.float)

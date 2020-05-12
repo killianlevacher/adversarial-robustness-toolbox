@@ -261,7 +261,7 @@ class AbstractModel(object):
             ensure_dir(ckpt_dir)
 
         # self.checkpoint_dir = "../../../resources/defences/preprocessor/gans_inv_notrain/mnist/"
-        self.checkpoint_dir = "./output/gans_inv_notrain/mnist/"
+        self.checkpoint_dir = "./defence_gan/output/gans_inv_notrain/mnist/"
         # self.checkpoint_dir = ckpt_dir
         self.debug_dir = self.checkpoint_dir.replace('output', 'debug')
         self.encoder_checkpoint_dir = os.path.join(self.checkpoint_dir, 'encoding')

@@ -1,6 +1,6 @@
 import os
 import scipy.misc
-from defence_gan_tflib.layers import *
+from defence_gan.tflib.layers import *
 import yaml
 import os
 import time
@@ -183,7 +183,7 @@ class Dataset(object):
         data_dir: The directory where the dataset resides.
     """
 
-    def __init__(self, name, data_dir='./data_defenceGan'):
+    def __init__(self, name, data_dir='./defence_gan/data/'):
         """The datasaet default constructor.
 
             Args:
@@ -401,7 +401,7 @@ def gan_from_config(batch_size, test_mode):
            'ENC_DISC_TRAIN_ITER': 0,
            'ENC_TRAIN_ITER': 1,
            'DISC_TRAIN_ITER': 1,
-           'GENERATOR_INIT_PATH': 'output/gans/mnist',
+           'GENERATOR_INIT_PATH': 'defence_gan/output/gans/mnist',
            'ENCODER_INIT_PATH': 'none',
            'ENC_DISC_LR': 1e-05,
            'NO_TRAINING_IMAGES': True,
@@ -416,8 +416,8 @@ def gan_from_config(batch_size, test_mode):
            'REC_RR': 1,
            'IMAGE_DIM': [28, 28, 1],
            'INPUR_TRANSFORM_TYPE': 1,
-           'BPDA_ENCODER_CP_PATH': 'output/gans_inv_notrain/mnist',
-           'BPDA_GENERATOR_INIT_PATH': 'output/gans/mnist',
+           'BPDA_ENCODER_CP_PATH': 'defence_gan/output/gans_inv_notrain/mnist',
+           'BPDA_GENERATOR_INIT_PATH': 'defence_gan/output/gans/mnist',
            'cfg_path': 'experiments/cfgs/gans_inv_notrain/mnist.yml'
            }
 
@@ -471,7 +471,7 @@ class AbstractModel(object):
             ['tensorboard_log', 'output_dir', 'num_gpus'])
         self.initialized = False
         self.verbose = verbose
-        self.output_dir = 'output'
+        self.output_dir = 'defence_gan/output'
 
         local_vals = locals()
         args.update(local_vals)
@@ -627,11 +627,16 @@ class AbstractModel(object):
             ckpt_dir = os.path.dirname(self.cfg_file)
 
         else:
-            ckpt_dir = os.path.join(self.output_dir,
+            ckpt_dir = os.path.join("defence_gan/output/",
                                     self.cfg_file.replace('experiments/cfgs/',
                                                           '').replace(
                                         'cfg.yml', '').replace(
                                         '.yml', ''))
+            # ckpt_dir = os.path.join(self.output_dir,
+            #                         self.cfg_file.replace('experiments/cfgs/',
+            #                                               '').replace(
+            #                             'cfg.yml', '').replace(
+            #                             '.yml', ''))
             if not self.test_mode:
                 postfix = ''
                 ignore_list = ['dataset', 'cfg_file', 'batch_size']
