@@ -2,7 +2,7 @@ import numpy as np
 
 import tensorflow as tf
 
-from getting_started_tmp import gan_from_config, InvertorDefenseGAN
+from getting_started_defence_gan_author_gans import gan_from_config, InvertorDefenseGAN
 
 class EncoderReconstructor(object):
     def __init__(self, batch_size):

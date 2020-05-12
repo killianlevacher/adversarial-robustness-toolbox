@@ -10,11 +10,7 @@ import tensorflow as tf
 from tensorflow.contrib import slim
 from tensorflow.python.ops.losses.losses_impl import Reduction
 
-import tflib
-import tflib.cifar10
-import tflib.mnist
-import tflib.plot
-from tflib.layers import generator_loss, discriminator_loss
+# import tflib
 
 IMSAVE_TRANSFORM_DICT = {
     'mnist': lambda x: x.reshape((len(x), 28, 28)),
@@ -29,6 +25,69 @@ INPUT_TRANSFORM_DICT = {
     'cifar-10': lambda x: tf.cast(x, tf.float32) / 255. * 2. - 1.,
     'celeba': lambda x: tf.cast(x, tf.float32) / 255. * 2. - 1.,
 }
+
+
+def model_a(nb_filters=64, nb_classes=10,
+            input_shape=(None, 28, 28, 1)):
+    layers = [Conv2D(nb_filters, (5, 5), (1, 1), "SAME", use_bias=True),
+              ReLU(),
+              Conv2D(nb_filters, (5, 5), (2, 2), "VALID", use_bias=True),
+              ReLU(),
+              Flatten(),
+              Dropout(0.25),
+              Linear(128),
+              ReLU(),
+              Dropout(0.5),
+              Linear(nb_classes),
+              Softmax()]
+
+    model = DefenseMLP(layers, input_shape, feature_layer='ReLU7')
+    return model
+
+def generator_loss(loss_func, fake):
+    fake_loss = 0
+
+    if loss_func.__contains__('wgan'):
+        fake_loss = -tf.reduce_mean(fake)
+
+    if loss_func == 'dcgan':
+        fake_loss = tf.losses.sigmoid_cross_entropy(
+            fake, tf.ones_like(fake), reduction=Reduction.MEAN,
+        )
+
+    if loss_func == 'hingegan':
+        fake_loss = -tf.reduce_mean(fake)
+
+    return fake_loss
+
+def discriminator_loss(loss_func, real, fake):
+
+    real_loss = 0
+    fake_loss = 0
+
+    if loss_func.__contains__('wgan'):
+        real_loss = -tf.reduce_mean(real)
+        fake_loss = tf.reduce_mean(fake)
+
+    if loss_func == 'dcgan':
+        real_loss = tf.losses.sigmoid_cross_entropy(
+            tf.ones_like(real), real, reduction=Reduction.MEAN,
+        )
+        fake_loss = tf.losses.sigmoid_cross_entropy(
+            tf.zeros_like(fake), fake, reduction=Reduction.MEAN,
+        )
+
+    if loss_func == 'hingegan':
+        real_loss = tf.reduce_mean(relu(1 - real))
+        fake_loss = tf.reduce_mean(relu(1 + fake))
+
+    if loss_func == 'ragan':
+        real_loss = tf.reduce_mean(tf.nn.softplus(-(real - tf.reduce_mean(fake))))
+        fake_loss = tf.reduce_mean(tf.nn.softplus(fake - tf.reduce_mean(real)))
+
+    loss = real_loss + fake_loss
+
+    return loss
 
 
 class DummySummaryWriter(object):
@@ -771,11 +830,12 @@ class AbstractModel(object):
     def imsave_transform(self, images):
         return IMSAVE_TRANSFORM_DICT[self.dataset_name](images)
 
-    def save_image(self, images, name):
-        tflib.save_images.save_images(
-            self.imsave_transform(images),
-            os.path.join(self.debug_dir,
-                         name))
+    # Killian removed since not needed for demo code
+    # def save_image(self, images, name):
+    #     tflib.save_images.save_images(
+    #         self.imsave_transform(images),
+    #         os.path.join(self.debug_dir,
+    #                      name))
 
 
 class DefenseGANv2(AbstractModel):
@@ -1099,15 +1159,16 @@ class DefenseGANv2(AbstractModel):
                     },
                 )
 
-            tflib.plot.plot(
-                '{}/train encoding cost'.format(self.debug_dir), loss,
-            )
-            tflib.plot.plot(
-                '{}/time'.format(self.debug_dir), time.time() - start_time,
-            )
-
-            if (iteration < 5) or (iteration % 100 == 99):
-                tflib.plot.flush()
+            #Killian removed since not needed for demo code
+            # tflib.plot.plot(
+            #     '{}/train encoding cost'.format(self.debug_dir), loss,
+            # )
+            # tflib.plot.plot(
+            #     '{}/time'.format(self.debug_dir), time.time() - start_time,
+            # )
+            #
+            # if (iteration < 5) or (iteration % 100 == 99):
+            #     tflib.plot.flush()
 
             self.sess.run(step_inc)
 
@@ -1137,7 +1198,8 @@ class DefenseGANv2(AbstractModel):
                 self.save_image(x, 'x_{}.png'.format(iteration))
                 self.save(checkpoint_dir=ckpt_dir, global_step=global_step)
 
-            tflib.plot.tick()
+            # Killian removed since not needed for demo code
+            # tflib.plot.tick()
 
         self.save(checkpoint_dir=ckpt_dir, global_step=global_step)
 
@@ -1485,4 +1547,184 @@ class InvertorDefenseGAN(DefenseGANv2):
             self.discriminator_vars = slim.get_variables(
                 self.discriminator_var_prefix
             ) if self.discriminator_fn else []
+
+class EncoderReconstructor(object):
+    def __init__(self, batch_size):
+
+        gan = gan_from_config(batch_size, True)
+
+        gan.load_model()
+        self.batch_size = gan.batch_size
+        self.latent_dim = gan.latent_dim
+
+        image_dim = gan.image_dim
+        rec_lr = gan.rec_lr
+        rec_rr = gan.rec_rr # # Number of random restarts for the reconstruction
+
+        self.sess = gan.sess
+        self.rec_iters = gan.rec_iters
+
+        x_shape = [self.batch_size] + image_dim
+        timg = tf.Variable(np.zeros(x_shape), dtype=tf.float32, name='timg')
+
+        timg_tiled_rr = tf.reshape(timg, [x_shape[0], np.prod(x_shape[1:])])
+        timg_tiled_rr = tf.tile(timg_tiled_rr, [1, rec_rr])
+        timg_tiled_rr = tf.reshape(
+            timg_tiled_rr, [x_shape[0] * rec_rr] + x_shape[1:])
+
+        if isinstance(gan, InvertorDefenseGAN):
+            # DefenseGAN++
+            self.z_init = gan.encoder_fn(timg_tiled_rr, is_training=False)[0]
+        else:
+            # DefenseGAN
+            self.z_init = tf.Variable(np.random.normal(size=(self.batch_size * rec_rr, self.latent_dim)),
+                                 collections=[tf.GraphKeys.LOCAL_VARIABLES],
+                                 trainable=False,
+                                 dtype=tf.float32,
+                                 name='z_init_rec')
+
+        modifier_killian = tf.Variable(np.zeros([self.batch_size, self.latent_dim]), dtype=tf.float32, name='modifier_killian')
+
+        z_init = tf.Variable(np.zeros([self.batch_size, self.latent_dim]), dtype=tf.float32, name='z_init')
+        z_init_reshaped = z_init
+
+        self.z_hats_recs = gan.generator_fn(z_init_reshaped + modifier_killian, is_training=False)
+
+
+        start_vars = set(x.name for x in tf.global_variables())
+
+
+        end_vars = tf.global_variables()
+        new_vars = [x for x in end_vars if x.name not in start_vars]
+
+
+        #TODO I don't think we need the assign and timg variables anymore
+        self.assign_timg = tf.placeholder(tf.float32, x_shape, name='assign_timg')
+        self.z_init_input_placeholder = tf.placeholder(tf.float32, shape=[self.batch_size, self.latent_dim],
+                                                       name='z_init_input_placeholder')
+        self.modifier_placeholder = tf.placeholder(tf.float32, shape=[self.batch_size, self.latent_dim],
+                                                   name='z_modifier_placeholder')
+
+        #Killian: resets the value to a new image
+        self.setup = tf.assign(timg, self.assign_timg)
+        self.setup_z_init = tf.assign(z_init, self.z_init_input_placeholder)
+        self.setup_modifier_killian = tf.assign(modifier_killian, self.modifier_placeholder)
+
+
+        #original self.init_opt = tf.variables_initializer(var_list=[modifier] + new_vars)
+        self.init_opt = tf.variables_initializer(var_list=[] + new_vars)
+
+        print('Reconstruction module initialzied...\n')
+
+    def generate_z_extrapolated_killian(self):
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
+        sess = tf.Session(config=config)
+
+        x_shape = [28, 28, 1]
+        classes = 10
+
+        # TODO use as TS1Encoder Input
+        images_tensor = tf.placeholder(tf.float32, shape=[None] + x_shape)
+        labels_tensor = tf.placeholder(tf.float32, shape=(None, classes))
+
+        images = images_tensor
+        batch_size = self.batch_size
+        latent_dim = self.latent_dim
+
+        x_shape = images.get_shape().as_list()
+        x_shape[0] = batch_size
+
+        def recon_wrap(im, b):
+            unmodified_z = self.generate_z_batch(im, b)
+            return np.array(unmodified_z, dtype=np.float32)
+
+        unmodified_z = tf.py_func(recon_wrap, [images, batch_size], [tf.float32])
+
+        unmodified_z_reshaped = tf.reshape(unmodified_z, [batch_size, latent_dim])
+
+        unmodified_z_tensor = tf.stop_gradient(unmodified_z_reshaped)
+        return sess, unmodified_z_tensor, images_tensor
+
+    def generate_z_batch(self, images, batch_size):
+        # images and batch_size are treated as numpy
+
+        self.sess.run(self.init_opt)
+        self.sess.run(self.setup, feed_dict={self.assign_timg: images})
+
+        for _ in range(self.rec_iters):
+            unmodified_z = self.sess.run([self.z_init])
+
+        return unmodified_z
+
+class GeneratorReconstructor(object):
+    def __init__(self, batch_size):
+
+        gan = gan_from_config(batch_size, True)
+        gan.load_model()
+
+        self.batch_size = gan.batch_size
+
+        self.latent_dim = gan.latent_dim
+
+        image_dim = gan.image_dim
+        rec_lr = gan.rec_lr
+        rec_rr = gan.rec_rr # # Number of random restarts for the reconstruction
+
+        self.sess = gan.sess
+        self.rec_iters = gan.rec_iters
+
+        x_shape = [self.batch_size] + image_dim
+
+        self.image_adverse_placeholder = tf.placeholder(tf.float32, shape=[self.batch_size, 28, 28, 1], name="image_adverse_placeholder_1")
+
+        self.z_general_placeholder = tf.placeholder(tf.float32, shape=[self.batch_size, self.latent_dim],
+                                                       name='z_general_placeholder')
+
+
+        self.timg_tiled_rr = tf.reshape(self.image_adverse_placeholder, [x_shape[0], np.prod(x_shape[1:])])
+        self.timg_tiled_rr = tf.tile(self.timg_tiled_rr, [1, rec_rr])
+        self.timg_tiled_rr = tf.reshape(self.timg_tiled_rr, [x_shape[0] * rec_rr] + x_shape[1:])
+
+        #TODO this is where the difference between Invert and Defence Gan happens -
+        # in the case of just defenceGan, the encoder is ignored and Z is randomly initialised
+
+        if isinstance(gan, InvertorDefenseGAN):
+            # DefenseGAN++
+            self.z_init = gan.encoder_fn(self.timg_tiled_rr, is_training=False)[0]
+        else:
+            # DefenseGAN
+            self.z_init = tf.Variable(np.random.normal(size=(self.batch_size * rec_rr, self.latent_dim)),
+                                 collections=[tf.GraphKeys.LOCAL_VARIABLES],
+                                 trainable=False,
+                                 dtype=tf.float32,
+                                 name='z_init_rec')
+
+
+        self.z_hats_recs = gan.generator_fn(self.z_general_placeholder, is_training=False)
+
+        num_dim = len(self.z_hats_recs.get_shape())
+
+        self.axes = list(range(1, num_dim))
+
+        image_rec_loss = tf.reduce_mean(tf.square(self.z_hats_recs - self.timg_tiled_rr), axis=self.axes)
+
+
+        self.rec_loss = tf.reduce_sum(image_rec_loss)
+
+
+
+        # # Setup the adam optimizer and keep track of variables we're creating
+        start_vars = set(x.name for x in tf.global_variables())
+
+        end_vars = tf.global_variables()
+        new_vars = [x for x in end_vars if x.name not in start_vars]
+
+        #TODO I don't think we need the assign and timg variables anymore
+
+
+        #original self.init_opt = tf.variables_initializer(var_list=[modifier] + new_vars)
+        self.init_opt = tf.variables_initializer(var_list=[] + new_vars)
+
+        print('Reconstruction module initialized...\n')
 

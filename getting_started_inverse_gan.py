@@ -15,11 +15,12 @@ from art.estimators.generation.tensorflow1 import Tensorflow1Generator
 from art.utils import load_mnist
 from art.attacks.evasion import FastGradientMethod
 
-from getting_started_defence_gan_author_code import create_defense_gan_paper_mnist_art_classifier
+# from getting_started_defence_gan_author_code import create_defense_gan_paper_mnist_art_classifier
 
 #TODO get rid of these
-from utils.reconstruction_art_sepEncoder import EncoderReconstructor
-from utils.reconstruction_art_sepGenerator import GeneratorReconstructor
+# from utils.reconstruction_art_sepEncoder import EncoderReconstructor
+# from utils.reconstruction_art_sepGenerator import GeneratorReconstructor
+from getting_started_defence_gan_author_gans import EncoderReconstructor, GeneratorReconstructor
 
 logging.root.setLevel(logging.NOTSET)
 logging.basicConfig(level=logging.NOTSET)
@@ -114,7 +115,7 @@ def main():
     classifier.fit(x_test, y_test, batch_size=batch_size, nb_epochs=3)
 
     #Code to load the original defense_gan paper mnist classifier to reproduce paper results
-    classifier_paper = create_defense_gan_paper_mnist_art_classifier()
+    # classifier_paper = create_defense_gan_paper_mnist_art_classifier()
 
     ######## STEP 2
     logging.info("Evaluate the ART classifier on non adversarial examples")
