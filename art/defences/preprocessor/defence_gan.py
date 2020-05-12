@@ -99,7 +99,6 @@ class DefenceGan(Preprocessor):
                 z_exaclty_equal_list.append(z_exaclty_equal)
 
 
-
             logging.info("Iteration: {0}".format(len(z_i_list)))
             z_i_reshaped = np.reshape(z_i, [batch_size, self.generator.encoding_length])
             y_i = self.generator.predict(z_i_reshaped)
