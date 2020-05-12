@@ -27,12 +27,12 @@ from tensorflow.python.ops.losses.losses_impl import Reduction
 # import art.defences.preprocessor_gan.tflib.mnist
 # import art.defences.preprocessor_gan.tflib.plot
 # import art.defences.preprocessor_gan.tflib.save_images
-from art.defences.preprocessor_gan.tflib.layers import generator_loss, discriminator_loss
+from preprocessor_gan import generator_loss, discriminator_loss
 
-from art.defences.preprocessor_gan.base_model_art import AbstractModel
-from art.defences.preprocessor_gan.util_art import get_encoder_fn, get_discriminator_fn
-from art.defences.preprocessor_gan.util_art import ensure_dir, get_generators, get_generator_fn
-from art.defences.preprocessor_gan.util_art import save_images_files
+from preprocessor_gan import AbstractModel
+from preprocessor_gan.util_art import get_encoder_fn, get_discriminator_fn
+from preprocessor_gan.util_art import ensure_dir, get_generators, get_generator_fn
+from preprocessor_gan.util_art import save_images_files
 
 def gan_from_config(cfg, test_mode):
 # from config.py

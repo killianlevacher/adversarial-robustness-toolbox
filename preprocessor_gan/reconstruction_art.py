@@ -6,9 +6,9 @@ import numpy as np
 import tensorflow as tf
 import tflib
 
-from art.defences.preprocessor_gan.gan_v2_art import InvertorDefenseGAN
-from art.defences.preprocessor_gan.util_art import ensure_dir
-from art.defences.preprocessor_gan.util_art import save_images_files
+from preprocessor_gan.gan_v2_art import InvertorDefenseGAN
+from preprocessor_gan.util_art import ensure_dir
+from preprocessor_gan.util_art import save_images_files
 
 
 class Reconstructor(object):

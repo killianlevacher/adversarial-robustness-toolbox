@@ -29,10 +29,8 @@ from cleverhans.model import Model
 from cleverhans.picklable_model import Conv2D, ReLU, Flatten, Linear, Dropout, Softmax
 from cleverhans.picklable_model import Layer, MLP
 
-from art.defences.preprocessor_gan.reconstruction_art import Reconstructor
-from art.defences.preprocessor_gan.gan_v2_art import InvertorDefenseGAN
-import numpy as np
-import tensorflow as tf
+from preprocessor_gan.reconstruction_art import Reconstructor
+from preprocessor_gan.gan_v2_art import InvertorDefenseGAN
 
 
 class ReconstructionLayer(Layer):

@@ -23,7 +23,6 @@ from __future__ import unicode_literals
 
 import argparse
 import pickle
-import logging
 import os
 import sys
 
@@ -35,12 +34,12 @@ import tensorflow as tf
 # from art.defences.cleverhans.utils import set_log_level, AccuracyReport
 # from art.defences.cleverhans.utils_tf import model_eval
 
-from art.defences.preprocessor_gan.blackbox_art import get_cached_gan_data, get_reconstructor
-from art.defences.preprocessor_gan.gan_v2_art import DefenseGANv2, InvertorDefenseGAN
-from art.defences.preprocessor_gan.gan_defense_art import model_eval_gan
-from art.defences.preprocessor_gan.util_art import ensure_dir
-from art.defences.preprocessor_gan.util_art import get_generator_fn
-from art.defences.preprocessor_gan.network_builder_art import model_a
+from preprocessor_gan.blackbox_art import get_cached_gan_data, get_reconstructor
+from preprocessor_gan.gan_v2_art import DefenseGANv2, InvertorDefenseGAN
+from preprocessor_gan import model_eval_gan
+from preprocessor_gan.util_art import ensure_dir
+from preprocessor_gan.util_art import get_generator_fn
+from preprocessor_gan import model_a
 
 #################
 orig_data_paths = {k: 'data/cache/{}_pkl'.format(k) for k in ['mnist']}
@@ -310,9 +309,6 @@ def whitebox(gan, rec_data_path=None, batch_size=128, learning_rate=0.001,
                 'acc_rec': 0,
                 'roc_info_adv': None,
                 'roc_info_rec': None}
-
-
-import re
 
 
 def gan_from_config(cfg, test_mode):

@@ -27,7 +27,7 @@ import numpy as np
 
 from cleverhans.utils import _ArgsWrapper, create_logger
 
-from art.defences.preprocessor_gan.util_art import save_images_files
+from preprocessor_gan.util_art import save_images_files
 
 
 

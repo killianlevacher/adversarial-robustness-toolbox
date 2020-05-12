@@ -38,12 +38,12 @@ from tensorflow.python.platform import flags
 # from art.defences.cleverhans.utils import set_log_level, to_categorical
 # from art.defences.cleverhans.utils_tf import model_train, model_eval, batch_eval
 
-from art.defences.preprocessor_gan.gan_v2_art import InvertorDefenseGAN, gan_from_config
-from art.defences.preprocessor_gan.gan_defense_art import model_eval_gan
-from art.defences.preprocessor_gan.network_builder_art import model_a, model_e, model_f, DefenseWrapper
-from art.defences.preprocessor_gan.util_art import save_images_files, ensure_dir, load_config
-from art.defences.preprocessor_gan.reconstruction_art import Reconstructor
-from art.defences.preprocessor_gan.reconstruction_art import reconstruct_dataset
+from preprocessor_gan.gan_v2_art import InvertorDefenseGAN, gan_from_config
+from preprocessor_gan import model_eval_gan
+from preprocessor_gan import model_a, model_e, model_f
+from preprocessor_gan.util_art import save_images_files, ensure_dir
+from preprocessor_gan.reconstruction_art import Reconstructor
+from preprocessor_gan.reconstruction_art import reconstruct_dataset
 
 cfg_REC_RR = 1
 cfg_REC_LR = 0.01

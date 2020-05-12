@@ -24,8 +24,8 @@ import tflib
 
 from tensorflow.contrib import slim
 
-from art.defences.preprocessor_gan.util_art import DummySummaryWriter
-from art.defences.preprocessor_gan.util_art import ensure_dir
+from preprocessor_gan.util_art import DummySummaryWriter
+from preprocessor_gan.util_art import ensure_dir
 
 
 
