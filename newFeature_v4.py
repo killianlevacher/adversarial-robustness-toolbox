@@ -185,8 +185,8 @@ def main():
         x_test_original, y_test_original), min_pixel_value, max_pixel_value = load_mnist()
 
     # batch_size = 100
-    batch_size = x_test_original.shape[0]
-    # batch_size = 1000
+    # batch_size = x_test_original.shape[0]
+    batch_size = 1000
 
     (x_test, y_test) = (x_test_original[:batch_size], y_test_original[:batch_size])
 

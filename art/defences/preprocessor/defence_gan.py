@@ -57,69 +57,48 @@ class DefenceGan(Preprocessor):
             assert isinstance(encoder, EncoderMixin)
             assert self.generator.encoding_length == self.encoder.encoding_length, "Both generator and encoder must use the same size encoding"
 
-    def __call__(self, x_adv, y=None, **kwargs):
+    def __call__(self, x, **kwargs):
+        """
+        Applies the defenceGan defence upon the sample input
+        :param x: sample input
+        :type x: `np.ndarray`
+        :param kwargs:
+        :return: Defended input
+        :rtype: `np.ndarray`
+        """
 
-        batch_size = x_adv.shape[0]
-        logging.info("x_adv max {0}".format(np.max(x_adv)))
-        logging.info("x_adv min {0}".format(np.min(x_adv)))
+        batch_size = x.shape[0]
 
         if self.encoder is not None:
-            logger.info("Encoding x_adv into initial z encoding")
-            initial_z_encoding = self.encoder.predict(x_adv)
+            logger.info("Encoding x_adv into starting z encoding")
+            initial_z_encoding = self.encoder.predict(x)
 
         else:
-            logger.info("Choosing a random initial z encoding")
+            logger.info("Choosing a random starting z encoding")
             initial_z_encoding = np.random.rand(batch_size, self.generator.encoding_length)
-        # initial_z_encoding = np.random.rand(batch_size, self.generator.encoding_length)
 
 
-        z_i_list = []
-        grad_i_list = []
-        mse_list = []
-        z_exaclty_equal_list = []
-        z_almost_equal_list = []
-
+        iteration_count = 0
         def func_gen_gradients(z_i):
             z_i_reshaped = np.reshape(z_i, [batch_size, self.generator.encoding_length])
-            grad = self.generator.loss_gradient(z_i_reshaped, x_adv)
+            grad = self.generator.loss_gradient(z_i_reshaped, x)
             grad = np.float64(grad) # scipy fortran code seems to expect float64 not 32 https://github.com/scipy/scipy/issues/5832
-            grad_i_list.append(grad)
 
-            if len(grad_i_list) > 2:
-                dif = grad_i_list[-2] - grad_i_list[-1]
-                tmp = ""
             return grad.flatten()
 
         def func_loss(z_i):
-            logging.info("Zi")
-            logging.info(z_i.copy())
-            z_i_list.append(z_i.copy())
-            if len(z_i_list) > 2:
-                z_exaclty_equal = np.all(z_i_list[-2] == z_i_list[-1])
-                z_exaclty_equal_list.append(z_exaclty_equal)
-
-
-            logging.info("Iteration: {0}".format(len(z_i_list)))
+            nonlocal iteration_count
+            iteration_count += 1
+            logging.info("Iteration: {0}".format(iteration_count))
             z_i_reshaped = np.reshape(z_i, [batch_size, self.generator.encoding_length])
-            y_i = self.generator.predict(z_i_reshaped)
 
+            loss = self.generator.loss(z_i_reshaped, x)
 
-            mse = mean_squared_error(x_adv.flatten(), y_i.flatten())
+            return loss
 
-            loss = self.generator.tmp_calculate_loss(z_i_reshaped, x_adv)
-            # mse_2 = mean_squared_error(x_adv.flatten(), y_i_2.flatten())
-            # if mse != mse_2:
-            #     tmp =""
-            # TODO should I instead simply get the loss from the ts graph here too?
-            # self.image_rec_loss = tf.reduce_mean(tf.square(self.z_hats_recs - timg_tiled_rr), axis=axes)
-            mse = mse *10000
-            mse_list.append(mse)
-            logging.info("mse: {0}".format(mse))
-            logging.info("loss: {0}".format(loss))
-            return mse
-
-        options = {"maxiter":500,
-                   "maxfun":500}
+        #TODO remove before PR request
+        options = {"maxiter":1,
+                   "maxfun":1}
         # options = {}
 
         options_allowed_keys = [
@@ -144,32 +123,11 @@ class DefenceGan(Preprocessor):
 
         options.update(kwargs)
 
-        # optimized_z_encoding_flat = minimize(func_loss, initial_z_encoding, jac=func_gen_gradients, method="Powell", options=options)
         optimized_z_encoding_flat = minimize(func_loss, initial_z_encoding, jac=func_gen_gradients, method="L-BFGS-B", options=options)
         optimized_z_encoding = np.reshape(optimized_z_encoding_flat.x,[batch_size, self.generator.encoding_length])
 
         y = self.generator.predict(optimized_z_encoding)
 
-        previous_z_i = initial_z_encoding.flatten()
-        equal_trail = []
-        difference_trail = []
-        for new_z_i in z_i_list:
-            dif = new_z_i - previous_z_i
-            difference_trail.append(dif)
-            equal = (previous_z_i == new_z_i).all()
-            equal_trail.append(equal)
-            previous_z_i = new_z_i
-
-        for mse in mse_list:
-            print("mse {0}".format(mse))
-
-        difference_grad = []
-        previous_grad_i = grad_i_list[0]
-        for grad_i in grad_i_list:
-            difference_grad.append(grad_i - previous_grad_i)
-            previous_grad_i = grad_i
-
-        tmp = ""
         return y
 
 

@@ -104,15 +104,22 @@ class Tensorflow1Generator(GeneratorMixin, TensorFlowEstimator):  # lgtm [py/mis
         self._sess = sess
 
 
-    def tmp_calculate_loss(self, z, image_adv):
+    def loss(self, z, image_adv):
+        """
+        Given a encoding z, computes the loss between the projected sample and the original sample
+        :param z: encoding z
+        :type z: `np.ndarray`
+        :param image_adv:
+        :type image_adv: `np.ndarray`
+        :return: The loss value
+        """
         logging.info("Calculating Loss")
-        y = self._sess.run(self._loss, feed_dict={self._input_ph: z,
-                                                  self._image_adv: image_adv})
-        return y
+        loss_value = self._sess.run(self._loss, feed_dict={self._input_ph: z, self._image_adv: image_adv})
+        return loss_value
 
     def predict(self, x):
         """
-        Perform prediction a batch of encodings.
+        Perform projections over a batch of encodings.
 
         :param x: Encodings.
         :type x: `np.ndarray`
