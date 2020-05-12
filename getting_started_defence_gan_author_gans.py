@@ -1,6 +1,6 @@
 import os
 import scipy.misc
-from defence_gan.tflib.layers import *
+from defence_gan.tflib_layers import *
 import yaml
 import os
 import time

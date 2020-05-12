@@ -97,6 +97,13 @@ def get_accuracy(y_pred, y):
 
 
 def main():
+    ######## SETTING UP DEFENCE GAN TRAINED MODELS
+    # * Clone the defence gan gitrepo https://github.com/yogeshbalaji/InvGAN
+    # * Follow the setup instructions and copy the following:
+    #   * data/ to adversarial-robustness-toolbox/defence_gan/data/
+    #   * output/gans/mnist to adversarial-robustness-toolbox/defence_gan/output/gans/mnist
+    #   * output/gans_inv_nottrain/mnist to adversarial-robustness-toolbox/defence_gan/output/gans_inv_nottrain/mnist
+
     ######## STEP 0
     logging.info("Loading a Dataset")
     (x_train_original, y_train_original), (
