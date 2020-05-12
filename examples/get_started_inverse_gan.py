@@ -20,7 +20,7 @@ from art.attacks.evasion import FastGradientMethod
 #TODO get rid of these
 # from utils.reconstruction_art_sepEncoder import EncoderReconstructor
 # from utils.reconstruction_art_sepGenerator import GeneratorReconstructor
-from examples.get_started_inverse_gan_author_gans import EncoderReconstructor, GeneratorReconstructor
+from examples.inverse_gan_author_utils import EncoderReconstructor, GeneratorReconstructor
 
 logging.root.setLevel(logging.NOTSET)
 logging.basicConfig(level=logging.NOTSET)
