@@ -9,7 +9,8 @@ from art.classifiers import TFClassifier
 
 from utils.network_builder_art import model_a
 
-def load_defense_gan_classifier():
+
+def _load_defense_gan_paper_classifier():
 
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
@@ -40,8 +41,8 @@ def load_defense_gan_classifier():
     return model, model_sess, images_tensor, labels_tensor, pred_train, pred_eval
 
 
-def create_defense_mnist_art_classifer():
-    model, model_sess, images_tensor, labels_tensor, pred_train, pred_eval = load_defense_gan_classifier()
+def create_defense_gan_paper_mnist_art_classifier():
+    model, model_sess, images_tensor, labels_tensor, pred_train, pred_eval = _load_defense_gan_paper_classifier()
 
     classifier = TFClassifier(
         # clip_values=(min_pixel_value, max_pixel_value),

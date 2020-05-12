@@ -15,6 +15,8 @@ from art.estimators.generation.tensorflow1 import Tensorflow1Generator
 from art.utils import load_mnist
 from art.attacks.evasion import FastGradientMethod
 
+from getting_started_defence_gan_author_code import create_defense_gan_paper_mnist_art_classifier
+
 #TODO get rid of these
 from utils.reconstruction_art_sepEncoder import EncoderReconstructor
 from utils.reconstruction_art_sepGenerator import GeneratorReconstructor
@@ -26,7 +28,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-def create_ts1_art_model(min_pixel_value, max_pixel_value):
+def create_ts1_art_mnist_classifier(min_pixel_value, max_pixel_value):
     input_ph = tf.placeholder(tf.float32, shape=[None, 28, 28, 1])
     labels_ph = tf.placeholder(tf.int32, shape=[None, 10])
 
@@ -87,9 +89,10 @@ def create_ts1_generator_model(batch_size):
 
     return generator
 
+
 def get_accuracy(y_pred, y):
     accuracy = np.sum(np.argmax(y_pred, axis=1) == np.argmax(y, axis=1)) / len(y)
-    return accuracy * 100
+    return round(accuracy * 100,2)
 
 
 def main():
@@ -106,8 +109,9 @@ def main():
 
 
     ######## STEP 1
-    logging.info("Creating a TS1 model")
-    classifier = create_ts1_art_model(min_pixel_value, max_pixel_value)
+    logging.info("Creating a TS1 Mnist Classifier")
+    classifier = create_ts1_art_mnist_classifier(min_pixel_value, max_pixel_value)
+    classifier_paper = create_defense_gan_paper_mnist_art_classifier()
     classifier.fit(x_test, y_test, batch_size=batch_size, nb_epochs=3)
 
     ######## STEP 2
