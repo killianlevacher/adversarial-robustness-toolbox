@@ -8,32 +8,23 @@ import logging
 import numpy as np
 import tensorflow as tf
 
-from art.attacks.evasion import FastGradientMethod
-from cleverhans import attacks
 from art.classifiers import TFClassifier
 from art.defences.preprocessor.defence_gan import DefenceGan
 from art.estimators.encoding.tensorflow1 import Tensorflow1Encoder
 from art.estimators.generation.tensorflow1 import Tensorflow1Generator
 from art.utils import load_mnist
-from tests.utils import master_seed
-# from utils.reconstruction_art_separated import Reconstructor
+from art.attacks.evasion import FastGradientMethod
+
+#TODO get rid of these
 from utils.reconstruction_art_sepEncoder import EncoderReconstructor
 from utils.reconstruction_art_sepGenerator import GeneratorReconstructor
-from utils.network_builder_art import model_a, model_e, model_f, DefenseWrapper
-from blackbox_art import prep_bbox
-from cleverhans.utils_tf import model_train, model_eval, batch_eval
+from utils.network_builder_art import model_a
 
 logging.root.setLevel(logging.NOTSET)
 logging.basicConfig(level=logging.NOTSET)
 logger = logging.getLogger(__name__)
 
 logger.setLevel(logging.INFO)
-
-
-
-# master_seed(1234)
-
-
 
 def create_ts1_art_model(min_pixel_value, max_pixel_value):
     input_ph = tf.placeholder(tf.float32, shape=[None, 28, 28, 1])
@@ -97,7 +88,7 @@ def create_ts1_generator_model(batch_size):
 
     return generator
 
-def loadDefenseGanClassifier():
+def load_defense_gan_classifier():
 
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
@@ -109,13 +100,6 @@ def loadDefenseGanClassifier():
         bb_model = model_a(
             input_shape=[None] + x_shape, nb_classes=classes,
         )
-
-    # prep_bbox_out = prep_bbox(
-    #     sess, images_tensor, labels_tensor, train_images_bb,
-    #     train_labels_bb, test_images_bb, test_labels_bb, nb_epochs,
-    #     batch_size, learning_rate, rng=rng, gan=cur_gan,
-    #     adv_training=adv_training,
-    #     cnn_arch=bb_model)
 
     ### From blackbox_art.prep_bbox
     model = bb_model
@@ -144,8 +128,9 @@ def loadDefenseGanClassifier():
 
     return model, model_sess, images_tensor, labels_tensor, pred_train, pred_eval
 
-def createDefMnistARTClassifer():
-    model, model_sess, images_tensor, labels_tensor, pred_train, pred_eval = loadDefenseGanClassifier()
+
+def create_defense_mnist_art_classifer():
+    model, model_sess, images_tensor, labels_tensor, pred_train, pred_eval = load_defense_gan_classifier()
 
     classifier = TFClassifier(
         # clip_values=(min_pixel_value, max_pixel_value),
@@ -161,51 +146,32 @@ def createDefMnistARTClassifer():
 
     return classifier
 
-
-def create_cleverhans_adv_samples(model, sess, batch_size, images_tensor, x_test):
-    eps = 0.3
-    min_val = 0
-
-    fgsm_par = {
-        'eps': eps, 'ord': np.inf, 'clip_min': min_val, 'clip_max': 1.
-    }
-
-    fgsm = attacks.FastGradientMethod(model, sess=sess)
-
-    # Craft adversarial examples using the substitute.
-    eval_params = {'batch_size': batch_size}
-    x_adv_sub = fgsm.generate(images_tensor, **fgsm_par)
-    x_adv_sub_val = sess.run(x_adv_sub, feed_dict={images_tensor: x_test})
-    return x_adv_sub_val
-
 def main():
     ######## STEP 0
     logging.info("Loading a Dataset")
     (x_train_original, y_train_original), (
         x_test_original, y_test_original), min_pixel_value, max_pixel_value = load_mnist()
 
-    # batch_size = 100
     # batch_size = x_test_original.shape[0]
     batch_size = 1000
 
     (x_test, y_test) = (x_test_original[:batch_size], y_test_original[:batch_size])
 
 
-
     ######## STEP 1
     logging.info("Creating a TS1 model")
-    # classifier = create_ts1_art_model(min_pixel_value, max_pixel_value)
-    # classifier.fit(x_test, y_test, batch_size=batch_size, nb_epochs=3)
+    classifier = create_ts1_art_model(min_pixel_value, max_pixel_value)
+    classifier.fit(x_test, y_test, batch_size=batch_size, nb_epochs=3)
 
 
     eval_params = {'batch_size': batch_size}
 
-    classifier = createDefMnistARTClassifer()
-    model_logit, model_sess, images_tensor, labels_tensor, pred_train, pred_eval = loadDefenseGanClassifier()
-    accuracy_ = model_eval(
-        model_sess, images_tensor, labels_tensor, pred_eval, x_test,
-        y_test, args=eval_params,
-    )
+    classifier = create_defense_mnist_art_classifer()
+    model_logit, model_sess, images_tensor, labels_tensor, pred_train, pred_eval = load_defense_gan_classifier()
+    # accuracy_ = model_eval(
+    #     model_sess, images_tensor, labels_tensor, pred_eval, x_test,
+    #     y_test, args=eval_params,
+    # )
 
 
     ######## STEP 2
@@ -216,11 +182,8 @@ def main():
 
     ######## STEP 3
     logging.info("Generate adversarial examples")
-    # attack = FastGradientMethod(classifier, eps=0.2)
-    # x_test_adv = attack.generate(x=x_test)
-
-    x_test_adv = create_cleverhans_adv_samples(model_logit, model_sess, batch_size, images_tensor, x_test)
-    
+    attack = FastGradientMethod(classifier, eps=0.2)
+    x_test_adv = attack.generate(x=x_test)
 
     ######## STEP 4
     logging.info("Evaluate the classifier on the adversarial examples")
@@ -236,7 +199,10 @@ def main():
     defence_gan = DefenceGan(generator, encoder)
 
     logging.info("Generating Defended Samples")
-    x_test_defended = defence_gan(x_test_adv)
+
+    # options = {"maxiter":1,
+    #                "maxfun":1}
+    x_test_defended = defence_gan(x_test_adv,maxiter=1)
 
     ######## STEP 6
     logging.info("Evaluate the classifier on the defended examples")
@@ -246,12 +212,6 @@ def main():
     logger.info("Accuracy on non adversarial examples: {}%".format(accuracy_non_adv * 100))
     logger.info("Accuracy on adversarial examples: {}%".format(accuracy_adv * 100))
     logger.info("Accuracy on defended examples: {}%".format(accuracy_defended * 100))
-
-    #TODO fix random to guarantee defense > adverse
-    # assert accuracy_non_adv > accuracy_adv, "accuracy_non_adv  should have been higher than accuracy_adv"
-    # assert accuracy_defended > accuracy_adv, "accuracy_defended  should have been higher than accuracy_adv"
-
-
 
 if __name__ == "__main__":
     main()

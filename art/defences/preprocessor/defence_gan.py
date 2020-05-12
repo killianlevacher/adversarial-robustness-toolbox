@@ -78,7 +78,7 @@ class DefenceGan(Preprocessor):
             initial_z_encoding = np.random.rand(batch_size, self.generator.encoding_length)
 
         iteration_count = 0
-        
+
         def func_gen_gradients(z_i):
             z_i_reshaped = np.reshape(z_i, [batch_size, self.generator.encoding_length])
             grad = self.generator.loss_gradient(z_i_reshaped, x)
@@ -97,9 +97,9 @@ class DefenceGan(Preprocessor):
             return loss
 
         #TODO remove before PR request
-        options = {"maxiter":1,
-                   "maxfun":1}
-        # options = {}
+        # options = {"maxiter":1,
+        #            "maxfun":1}
+        options = {}
 
         options_allowed_keys = [
             "disp",
