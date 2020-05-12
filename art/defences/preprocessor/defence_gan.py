@@ -95,44 +95,16 @@ class DefenceGan(Preprocessor):
             logging.info(z_i.copy())
             z_i_list.append(z_i.copy())
             if len(z_i_list) > 2:
-
-                # mse_recalculation = []
-                # for z_i_prior in z_i_list:
-                #     z_i_previous_reshaped = np.reshape(z_i_prior, [batch_size, self.generator.encoding_length])
-                #     y_previous = self.generator.predict(z_i_previous_reshaped)
-                #     mse_previous = mean_squared_error(x_adv.flatten(), y_previous.flatten())
-                #     mse_recalculation.append(mse_previous)
-
-                # dif = z_i_list[-2] - z_i_list[-1]
-                # tmp = ""
                 z_exaclty_equal = np.all(z_i_list[-2] == z_i_list[-1])
                 z_exaclty_equal_list.append(z_exaclty_equal)
-                # z_almost_equal = np.testing.assert_almost_equal(z_i_list[-2], z_i_list[-1], decimal=10)
-                # z_almost_equal_list.append(z_almost_equal)
 
 
-            # zprevious_exaclty_equal = np.all(z_i_list[-1] == z_i)
-
-            # z_i_previous_reshaped = np.reshape(z_i_list[-1], [batch_size, self.generator.encoding_length])
-            # y_previous = self.generator.predict(z_i_previous_reshaped)
-
-            # z_i_reshaped = np.reshape(z_i, [batch_size, self.generator.encoding_length])
-            # y_current = self.generator.predict(z_i_reshaped)
-            # y_exaclty_equal = np.all(y_previous == y_current)
-            # mse_previous = mean_squared_error(x_adv.flatten(), y_previous.flatten())
-            # mse_current = mean_squared_error(x_adv.flatten(), y_current.flatten())
-            tmp = ""
 
             logging.info("Iteration: {0}".format(len(z_i_list)))
             z_i_reshaped = np.reshape(z_i, [batch_size, self.generator.encoding_length])
             y_i = self.generator.predict(z_i_reshaped)
 
-            logging.info("y_i max {0}".format(np.max(y_i)))
-            logging.info("y_i min {0}".format(np.min(y_i)))
-            logging.info("y_i min {0}".format(np.mean(y_i)))
-            # y_i_2 = self.generator.predict(z_i_reshaped)
-            # exaclty_equal = np.all(y_i == y_i_2)
-            # almost_equal = np.testing.assert_almost_equal(y_i, y_i_2, decimal=10)
+
             mse = mean_squared_error(x_adv.flatten(), y_i.flatten())
 
             loss = self.generator.tmp_calculate_loss(z_i_reshaped, x_adv)
