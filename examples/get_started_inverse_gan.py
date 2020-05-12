@@ -9,7 +9,7 @@ import numpy as np
 import tensorflow as tf
 
 from art.classifiers import TFClassifier
-from art.defences.preprocessor.defence_gan import DefenceGan
+from art.defences.preprocessor.encoder_decoder import InverseGan, DefenseGan
 from art.estimators.encoding.tensorflow1 import Tensorflow1Encoder
 from art.estimators.generation.tensorflow1 import Tensorflow1Generator
 from art.utils import load_mnist
@@ -143,10 +143,11 @@ def main():
     logging.info("Create DefenceGan")
     encoder = create_ts1_encoder_model(batch_size)
     generator = create_ts1_generator_model(batch_size)
-    defence_gan = DefenceGan(generator, encoder)
+    inverse_gan = InverseGan(generator, encoder)
+    defense_gan = DefenseGan(generator)
 
     logging.info("Generating Defended Samples")
-    x_test_defended = defence_gan(x_test_adv, maxiter=1)
+    x_test_defended = inverse_gan(x_test_adv, maxiter=1)
 
     ######## STEP 6
     logging.info("Evaluate the classifier on the defended examples")

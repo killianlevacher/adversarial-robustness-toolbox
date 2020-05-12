@@ -35,19 +35,22 @@ from art.estimators.generation.generator import GeneratorMixin
 logger = logging.getLogger(__name__)
 
 
-class DefenceGan(Preprocessor):
+
+
+class EncoderDecoderDefense(Preprocessor):
     """
-    Infers the latent variable generating a given adversarial sample and appends an optimal modifier to that latent
-    variable to create a new non adversarial projection of this sample
+    Given a latent variable generating a given adversarial sample, either inferred by an inverse Gan or randomly
+    generated, the EncoderDecoder Defense, optimizes that latent variable to project a sample as close as possible to
+    the adversarial sample without the adversarial noise
 
     """
 
     def __init__(self, generator, encoder=None):
         """
-        Create an instance of DefenceGAN.
+        Create an instance of an encoderDecoder Defense.
 
         """
-        super(DefenceGan, self).__init__()
+        super(EncoderDecoderDefense, self).__init__()
 
         assert isinstance(generator, GeneratorMixin)
         self.generator = generator
@@ -59,7 +62,7 @@ class DefenceGan(Preprocessor):
 
     def __call__(self, x, **kwargs):
         """
-        Applies the defenceGan defence upon the sample input
+        Applies the EncoderDecoderDefense defence upon the sample input
         :param x: sample input
         :type x: `np.ndarray`
         :param kwargs:
@@ -127,6 +130,57 @@ class DefenceGan(Preprocessor):
 
         return y
 
+
+
+
+class InverseGan(EncoderDecoderDefense):
+    def __init__(self, generator, encoder):
+        """
+          Create an instance of InverseGan defense.
+
+          """
+        super(InverseGan, self).__init__(
+            generator=generator,
+            encoder=encoder
+        )
+
+    @property
+    def apply_fit(self):
+        """
+        do nothing.
+        """
+        pass
+
+    @property
+    def apply_predict(self):
+        """
+        do nothing.
+        """
+        pass
+
+    def estimate_gradient(self, x, grad):
+        """
+        do nothing.
+        """
+        pass
+        # return grad
+
+    def fit(self, x, y=None, **kwargs):
+        """
+        No parameters to learn for this method; do nothing.
+        """
+        pass
+
+
+class DefenseGan(EncoderDecoderDefense):
+    def __init__(self, generator):
+        """
+          Create an instance of DefenceGAN defense.
+
+          """
+        super(DefenseGan, self).__init__(
+            generator=generator
+        )
 
     @property
     def apply_fit(self):

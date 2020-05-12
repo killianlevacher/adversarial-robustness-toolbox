@@ -30,7 +30,7 @@ from tests.attacks.utils import backend_check_adverse_values, backend_test_defen
 from tests.attacks.utils import backend_test_random_initialisation_images, backend_targeted_images
 from tests.attacks.utils import backend_targeted_tabular, backend_untargeted_tabular, backend_masked_images
 from tests.attacks.utils import backend_test_classifier_type_check_fail
-from art.defences.preprocessor.inverse_gan import run_whitebox
+from art.defences.preprocessor.encoder_decoder import run_whitebox
 
 logger = logging.getLogger(__name__)
 
