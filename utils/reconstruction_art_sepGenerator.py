@@ -11,6 +11,7 @@ from utils.util_art import ensure_dir
 from utils.util_art import save_images_files
 from models_art.gan_v2_art import InvertorDefenseGAN, gan_from_config
 
+
 class GeneratorReconstructor(object):
     def __init__(self, batch_size):
 
