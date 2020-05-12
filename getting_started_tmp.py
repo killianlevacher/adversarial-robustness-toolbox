@@ -1,27 +1,16 @@
-# Copyright 2019 The InvGAN Authors. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# =============================================================================
-
-"""Contains the GAN implementations of the abstract model class."""
-
+import os
+import scipy.misc
+from tflib.layers import *
+import yaml
 import os
 import time
 
 import numpy as np
 import tensorflow as tf
+
 from tensorflow.contrib import slim
 from tensorflow.python.ops.losses.losses_impl import Reduction
+
 import tflib
 import tflib.cifar10
 import tflib.mnist
@@ -34,71 +23,107 @@ from utils.util_art import get_encoder_fn, get_discriminator_fn
 from utils.util_art import ensure_dir, get_generators, get_generator_fn
 from utils.util_art import save_images_files
 
-# def gan_from_config(batch_size, test_mode):
-#
-#     cfg = {'TYPE': 'inv',
-#            'MODE': 'hingegan',
-#            'BATCH_SIZE': batch_size,
-#            'USE_BN': True,
-#            'USE_RESBLOCK': False,
-#            'LATENT_DIM': 128,
-#            'GRADIENT_PENALTY_LAMBDA': 10.0,
-#            'OUTPUT_DIR': 'output',
-#            'NET_DIM': 64,
-#            'TRAIN_ITERS': 20000,
-#            'DISC_LAMBDA': 0.0,
-#            'TV_LAMBDA': 0.0,
-#            'ATTRIBUTE': None,
-#            'TEST_BATCH_SIZE': 20,
-#            'NUM_GPUS': 1,
-#            'INPUT_TRANSFORM_TYPE': 0,
-#            'ENCODER_LR': 0.0002,
-#            'GENERATOR_LR': 0.0001,
-#            'DISCRIMINATOR_LR': 0.0004,
-#            'DISCRIMINATOR_REC_LR': 0.0004,
-#            'USE_ENCODER_INIT': True,
-#            'ENCODER_LOSS_TYPE': 'margin',
-#            'REC_LOSS_SCALE': 100.0,
-#            'REC_DISC_LOSS_SCALE': 1.0,
-#            'LATENT_REG_LOSS_SCALE': 0.5,
-#            'REC_MARGIN': 0.02,
-#            'ENC_DISC_TRAIN_ITER': 0,
-#            'ENC_TRAIN_ITER': 1,
-#            'DISC_TRAIN_ITER': 1,
-#            'GENERATOR_INIT_PATH': 'output/gans/mnist',
-#            'ENCODER_INIT_PATH': 'none',
-#            'ENC_DISC_LR': 1e-05,
-#            'NO_TRAINING_IMAGES': True,
-#            'GEN_SAMPLES_DISC_LOSS_SCALE': 1.0,
-#            'LATENTS_TO_Z_LOSS_SCALE': 1.0,
-#            'REC_CYCLED_LOSS_SCALE': 100.0,
-#            'GEN_SAMPLES_FAKING_LOSS_SCALE': 1.0,
-#            'DATASET_NAME': 'mnist',
-#            'ARCH_TYPE': 'mnist',
-#            'REC_ITERS': 200,
-#            'REC_LR': 0.01,
-#            'REC_RR': 1,
-#            'IMAGE_DIM': [28, 28, 1],
-#            'INPUR_TRANSFORM_TYPE': 1,
-#            'BPDA_ENCODER_CP_PATH': 'output/gans_inv_notrain/mnist',
-#            'BPDA_GENERATOR_INIT_PATH': 'output/gans/mnist',
-#            'cfg_path': 'experiments/cfgs/gans_inv_notrain/mnist.yml'
-#            }
-#
-#
-# # from config.py
-#     if cfg['TYPE'] == 'v2':
-#         gan = DefenseGANv2(
-#             get_generator_fn(cfg['DATASET_NAME'], cfg['USE_RESBLOCK']), cfg=cfg,
-#             test_mode=test_mode,
-#         )
-#     elif cfg['TYPE'] == 'inv':
-#         gan = InvertorDefenseGAN(
-#             get_generator_fn(cfg['DATASET_NAME'], cfg['USE_RESBLOCK']), cfg=cfg,
-#             test_mode=test_mode,
-#         )
-#
-#     return gan
+def mnist_generator(z, is_training=True):
+    net_dim = 64
+    use_sn = False
+    update_collection = None
+    with tf.variable_scope('Generator', reuse=tf.AUTO_REUSE):
+        output = linear(z, 4 * 4 * 4 * net_dim, sn=use_sn, name='linear')
+        output = batch_norm(output, is_training=is_training, name='bn_linear')
+        output = tf.nn.relu(output)
+        output = tf.reshape(output, [-1, 4, 4, 4 * net_dim])
+
+        # deconv-bn-relu
+        output = deconv2d(output, 2 * net_dim, 5, 2, sn=use_sn, name='deconv_0')
+        output = batch_norm(output, is_training=is_training, name='bn_0')
+        output = tf.nn.relu(output)
+
+        output = output[:, :7, :7, :]
+
+        output = deconv2d(output, net_dim, 5, 2, sn=use_sn, name='deconv_1')
+        output = batch_norm(output, is_training=is_training, name='bn_1')
+        output = tf.nn.relu(output)
+
+        output = deconv2d(output, 1, 5, 2, sn=use_sn, name='deconv_2')
+        output = tf.sigmoid(output)
+
+        return output
+
+GENERATOR_DICT = {'mnist': [mnist_generator, mnist_generator]}
+
+def get_generator_fn(dataset_name, use_resblock=False):
+    if use_resblock:
+        return GENERATOR_DICT[dataset_name][1]
+    else:
+        return GENERATOR_DICT[dataset_name][0]
+
+def gan_from_config(batch_size, test_mode):
+
+    cfg = {'TYPE': 'inv',
+           'MODE': 'hingegan',
+           'BATCH_SIZE': batch_size,
+           'USE_BN': True,
+           'USE_RESBLOCK': False,
+           'LATENT_DIM': 128,
+           'GRADIENT_PENALTY_LAMBDA': 10.0,
+           'OUTPUT_DIR': 'output',
+           'NET_DIM': 64,
+           'TRAIN_ITERS': 20000,
+           'DISC_LAMBDA': 0.0,
+           'TV_LAMBDA': 0.0,
+           'ATTRIBUTE': None,
+           'TEST_BATCH_SIZE': 20,
+           'NUM_GPUS': 1,
+           'INPUT_TRANSFORM_TYPE': 0,
+           'ENCODER_LR': 0.0002,
+           'GENERATOR_LR': 0.0001,
+           'DISCRIMINATOR_LR': 0.0004,
+           'DISCRIMINATOR_REC_LR': 0.0004,
+           'USE_ENCODER_INIT': True,
+           'ENCODER_LOSS_TYPE': 'margin',
+           'REC_LOSS_SCALE': 100.0,
+           'REC_DISC_LOSS_SCALE': 1.0,
+           'LATENT_REG_LOSS_SCALE': 0.5,
+           'REC_MARGIN': 0.02,
+           'ENC_DISC_TRAIN_ITER': 0,
+           'ENC_TRAIN_ITER': 1,
+           'DISC_TRAIN_ITER': 1,
+           'GENERATOR_INIT_PATH': 'output/gans/mnist',
+           'ENCODER_INIT_PATH': 'none',
+           'ENC_DISC_LR': 1e-05,
+           'NO_TRAINING_IMAGES': True,
+           'GEN_SAMPLES_DISC_LOSS_SCALE': 1.0,
+           'LATENTS_TO_Z_LOSS_SCALE': 1.0,
+           'REC_CYCLED_LOSS_SCALE': 100.0,
+           'GEN_SAMPLES_FAKING_LOSS_SCALE': 1.0,
+           'DATASET_NAME': 'mnist',
+           'ARCH_TYPE': 'mnist',
+           'REC_ITERS': 200,
+           'REC_LR': 0.01,
+           'REC_RR': 1,
+           'IMAGE_DIM': [28, 28, 1],
+           'INPUR_TRANSFORM_TYPE': 1,
+           'BPDA_ENCODER_CP_PATH': 'output/gans_inv_notrain/mnist',
+           'BPDA_GENERATOR_INIT_PATH': 'output/gans/mnist',
+           'cfg_path': 'experiments/cfgs/gans_inv_notrain/mnist.yml'
+           }
+
+
+# from config.py
+    if cfg['TYPE'] == 'v2':
+        gan = DefenseGANv2(
+            get_generator_fn(cfg['DATASET_NAME'], cfg['USE_RESBLOCK']), cfg=cfg,
+            test_mode=test_mode,
+        )
+    elif cfg['TYPE'] == 'inv':
+        gan = InvertorDefenseGAN(
+            get_generator_fn(cfg['DATASET_NAME'], cfg['USE_RESBLOCK']), cfg=cfg,
+            test_mode=test_mode,
+        )
+
+    return gan
+
+
 
 class DefenseGANv2(AbstractModel):
     @property
