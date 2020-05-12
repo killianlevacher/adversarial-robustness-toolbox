@@ -111,8 +111,10 @@ def main():
     ######## STEP 1
     logging.info("Creating a TS1 Mnist Classifier")
     classifier = create_ts1_art_mnist_classifier(min_pixel_value, max_pixel_value)
-    classifier_paper = create_defense_gan_paper_mnist_art_classifier()
     classifier.fit(x_test, y_test, batch_size=batch_size, nb_epochs=3)
+
+    #Code to load the original defense_gan paper mnist classifier to reproduce paper results
+    classifier_paper = create_defense_gan_paper_mnist_art_classifier()
 
     ######## STEP 2
     logging.info("Evaluate the ART classifier on non adversarial examples")

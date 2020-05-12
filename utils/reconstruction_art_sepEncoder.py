@@ -1,15 +1,7 @@
-import os
-import time
-import pickle
 import numpy as np
 
 import tensorflow as tf
-import tflib
 
-# from models_art.gan_v2_art import InvertorDefenseGAN
-from utils.util_art import ensure_dir
-from utils.util_art import save_images_files
-# from models_art.gan_v2_art import InvertorDefenseGAN, gan_from_config
 from getting_started_tmp import gan_from_config, InvertorDefenseGAN
 
 class EncoderReconstructor(object):

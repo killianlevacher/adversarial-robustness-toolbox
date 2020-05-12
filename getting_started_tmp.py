@@ -15,13 +15,10 @@ import tflib
 import tflib.cifar10
 import tflib.mnist
 import tflib.plot
-# import tflib.save_images
 from tflib.layers import generator_loss, discriminator_loss
 
 from models_art.base_model_art import AbstractModel
-from utils.util_art import get_encoder_fn, get_discriminator_fn
-from utils.util_art import ensure_dir, get_generators, get_generator_fn
-from utils.util_art import save_images_files
+
 
 def mnist_generator(z, is_training=True):
     net_dim = 64
@@ -49,7 +46,238 @@ def mnist_generator(z, is_training=True):
 
         return output
 
+def mnist_discriminator(x, update_collection=None, is_training=False):
+    net_dim = 64
+    use_sn = True
+    with tf.variable_scope('Discriminator', reuse=tf.AUTO_REUSE):
+        # block 1
+        x = conv2d(x, net_dim, 5, 2, sn=use_sn, update_collection=update_collection, name='conv0')
+        x = lrelu(x)
+        # block 2
+        x = conv2d(x, 2 * net_dim, 5, 2, sn=use_sn, update_collection=update_collection, name='conv1')
+        x = lrelu(x)
+        # block 3
+        x = conv2d(x, 4 * net_dim, 5, 2, sn=use_sn, update_collection=update_collection, name='conv2')
+        x = lrelu(x)
+        # output
+        x = tf.reshape(x, [-1, 4 * 4 * 4 * net_dim])
+        x = linear(x, 1, sn=use_sn, update_collection=update_collection, name='linear')
+        return tf.reshape(x, [-1])
+
+def mnist_encoder(x, is_training=False, use_bn=False, net_dim=64, latent_dim=128):
+    with tf.variable_scope('Encoder', reuse=tf.AUTO_REUSE):
+        x = conv2d(x, net_dim, 5, 2, name='conv0')
+        if use_bn:
+            x = batch_norm(x, is_training=is_training, name='bn0')
+        x = tf.nn.relu(x)
+
+        x = conv2d(x, 2*net_dim, 5, 2, name='conv1')
+        if use_bn:
+            x = batch_norm(x, is_training=is_training, name='bn1')
+        x = tf.nn.relu(x)
+
+        x = conv2d(x, 4*net_dim, 5, 2, name='conv2')
+        if use_bn:
+            x = batch_norm(x, is_training=is_training, name='bn2')
+        x = tf.nn.relu(x)
+
+        x = tf.reshape(x, [-1, 4 * 4 * 4 * net_dim])
+        x = linear(x, 2*latent_dim, name='linear')
+
+        return x[:, :latent_dim], x[:, latent_dim:]
+
 GENERATOR_DICT = {'mnist': [mnist_generator, mnist_generator]}
+DISCRIMINATOR_DICT = {'mnist': [mnist_discriminator, mnist_discriminator]}
+ENCODER_DICT = {'mnist': [mnist_encoder, mnist_encoder]}
+
+class Dataset(object):
+    """The abstract class for handling datasets.
+
+    Attributes:
+        name: Name of the dataset.
+        data_dir: The directory where the dataset resides.
+    """
+
+    def __init__(self, name, data_dir='./data_defenceGan'):
+        """The datasaet default constructor.
+
+            Args:
+                name: A string, name of the dataset.
+                data_dir (optional): The path of the datasets on disk.
+        """
+
+        self.data_dir = os.path.join(data_dir, name)
+        self.name = name
+        self.images = None
+        self.labels = None
+
+    def __len__(self):
+        """Gives the number of images in the dataset.
+
+        Returns:
+            Number of images in the dataset.
+        """
+
+        return len(self.images)
+
+    def load(self, split):
+        """ Abstract function specific to each dataset."""
+        pass
+
+class Mnist(Dataset):
+    """Implements the Dataset class to handle MNIST.
+
+    Attributes:
+        y_dim: The dimension of label vectors (number of classes).
+        split_data: A dictionary of
+            {
+                'train': Images of np.ndarray, Int array of labels, and int
+                array of ids.
+                'val': Images of np.ndarray, Int array of labels, and int
+                array of ids.
+                'test': Images of np.ndarray, Int array of labels, and int
+                array of ids.
+            }
+    """
+
+    def __init__(self):
+        super(Mnist, self).__init__('mnist')
+        self.y_dim = 10
+        self.split_data = {}
+
+    def load(self, split='train', lazy=True, randomize=True):
+        """Implements the load function.
+
+        Args:
+            split: Dataset split, can be [train|dev|test], default: train.
+            lazy: Not used for MNIST.
+
+        Returns:
+             Images of np.ndarray, Int array of labels, and int array of ids.
+
+        Raises:
+            ValueError: If split is not one of [train|val|test].
+        """
+
+        if split in self.split_data.keys():
+            return self.split_data[split]
+
+        data_dir = self.data_dir
+
+        fd = open(os.path.join(data_dir, 'train-images-idx3-ubyte'))
+        loaded = np.fromfile(file=fd, dtype=np.uint8)
+        train_images = loaded[16:].reshape((60000, 28, 28, 1)).astype(np.float)
+
+        fd = open(os.path.join(data_dir, 'train-labels-idx1-ubyte'))
+        loaded = np.fromfile(file=fd, dtype=np.uint8)
+        train_labels = loaded[8:].reshape((60000)).astype(np.float)
+
+        fd = open(os.path.join(data_dir, 't10k-images-idx3-ubyte'))
+        loaded = np.fromfile(file=fd, dtype=np.uint8)
+        test_images = loaded[16:].reshape((10000, 28, 28, 1)).astype(np.float)
+
+        fd = open(os.path.join(data_dir, 't10k-labels-idx1-ubyte'))
+        loaded = np.fromfile(file=fd, dtype=np.uint8)
+        test_labels = loaded[8:].reshape((10000)).astype(np.float)
+
+        train_labels = np.asarray(train_labels)
+        test_labels = np.asarray(test_labels)
+        if split == 'train':
+            images = train_images[:50000]
+            labels = train_labels[:50000]
+        elif split == 'val':
+            images = train_images[50000:60000]
+            labels = train_labels[50000:60000]
+        elif split == 'test':
+            images = test_images
+            labels = test_labels
+
+        if randomize:
+            rng_state = np.random.get_state()
+            np.random.shuffle(images)
+            np.random.set_state(rng_state)
+            np.random.shuffle(labels)
+        images = np.reshape(images, [-1, 28, 28, 1])
+        self.split_data[split] = [images, labels]
+        self.images = images
+        self.labels = labels
+
+        return images, labels
+
+def create_generator(dataset_name, split, batch_size, randomize,
+                     attribute=None):
+    """Creates a batch generator for the dataset.
+
+    Args:
+        dataset_name: `str`. The name of the dataset.
+        split: `str`. The split of data. It can be `train`, `val`, or `test`.
+        batch_size: An integer. The batch size.
+        randomize: `bool`. Whether to randomize the order of images before
+            batching.
+        attribute (optional): For cele
+
+    Returns:
+        image_batch: A Python generator for the images.
+        label_batch: A Python generator for the labels.
+    """
+    flags = tf.app.flags.FLAGS
+
+    if dataset_name.lower() == 'mnist':
+        ds = Mnist()
+    else:
+        raise ValueError("Dataset {} is not supported.".format(dataset_name))
+
+    ds.load(split=split, randomize=randomize)
+
+    def get_gen():
+        for i in range(0, len(ds) - batch_size, batch_size):
+            image_batch, label_batch = ds.images[
+                                       i:i + batch_size], \
+                                       ds.labels[i:i + batch_size]
+            yield image_batch, label_batch
+
+    return get_gen
+
+def get_generators(dataset_name, batch_size, randomize=True, attribute='gender'):
+    """Creates batch generators for datasets.
+
+    Args:
+        dataset_name: A `string`. Name of the dataset.
+        batch_size: An `integer`. The size of each batch.
+        randomize: A `boolean`.
+        attribute: A `string`. If the dataset name is `celeba`, this will
+         indicate the attribute name that labels should be returned for.
+
+    Returns:
+        Training, validation, and test dataset generators which are the
+            return values of `create_generator`.
+    """
+    splits = ['train', 'val', 'test']
+    gens = []
+    for i in range(3):
+        if i > 0:
+            randomize = False
+        gens.append(
+            create_generator(dataset_name, splits[i], batch_size, randomize,
+                             attribute=attribute))
+
+    return gens
+
+def get_encoder_fn(dataset_name, use_resblock=False):
+    if use_resblock:
+        return ENCODER_DICT[dataset_name][1]
+    else:
+        return ENCODER_DICT[dataset_name][0]
+
+def get_discriminator_fn(dataset_name, use_resblock=False, use_label=False):
+    if use_resblock:
+        return DISCRIMINATOR_DICT[dataset_name][1]
+    else:
+        return DISCRIMINATOR_DICT[dataset_name][0]
+
+
+
+
 
 def get_generator_fn(dataset_name, use_resblock=False):
     if use_resblock:
@@ -624,14 +852,14 @@ class DefenseGANv2(AbstractModel):
         recons = self.generator_fn(z_hat, is_training=False)
         return recons
 
-    def test_batch(self):
-        """Tests the image batch generator."""
-        output_dir = os.path.join(self.debug_dir, 'test_batch')
-        ensure_dir(output_dir)
-
-        img, target = self.train_data_gen().next()
-        img = img.reshape([self.batch_size] + self.image_dim)
-        save_images_files(img / 255.0, output_dir=output_dir, labels=target)
+    # def test_batch(self):
+    #     """Tests the image batch generator."""
+    #     output_dir = os.path.join(self.debug_dir, 'test_batch')
+    #     ensure_dir(output_dir)
+    #
+    #     img, target = self.train_data_gen().next()
+    #     img = img.reshape([self.batch_size] + self.image_dim)
+    #     save_images_files(img / 255.0, output_dir=output_dir, labels=target)
 
     def load_model(self):
         could_load_generator = self.load_generator(
