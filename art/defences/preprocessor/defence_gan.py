@@ -96,9 +96,6 @@ class DefenceGan(Preprocessor):
 
             return loss
 
-        #TODO remove before PR request
-        # options = {"maxiter":1,
-        #            "maxfun":1}
         options = {}
 
         options_allowed_keys = [

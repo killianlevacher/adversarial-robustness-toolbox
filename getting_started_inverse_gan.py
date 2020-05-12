@@ -18,13 +18,13 @@ from art.attacks.evasion import FastGradientMethod
 #TODO get rid of these
 from utils.reconstruction_art_sepEncoder import EncoderReconstructor
 from utils.reconstruction_art_sepGenerator import GeneratorReconstructor
-from utils.network_builder_art import model_a
 
 logging.root.setLevel(logging.NOTSET)
 logging.basicConfig(level=logging.NOTSET)
 logger = logging.getLogger(__name__)
 
 logger.setLevel(logging.INFO)
+
 
 def create_ts1_art_model(min_pixel_value, max_pixel_value):
     input_ph = tf.placeholder(tf.float32, shape=[None, 28, 28, 1])
@@ -76,7 +76,6 @@ def create_ts1_encoder_model(batch_size):
 def create_ts1_generator_model(batch_size):
     generator = GeneratorReconstructor(batch_size)
     generator.sess.run(generator.init_opt)
-    # sess, image_generated_tensor, image_rec_loss_test, z_init_input_placeholder, modifier_placeholder, gradient_tensor, image_adverse_tensor = generator_reconstructor.generate_image_projected_tensor()
 
     generator = Tensorflow1Generator(
         input_ph=generator.z_general_placeholder,
@@ -88,63 +87,10 @@ def create_ts1_generator_model(batch_size):
 
     return generator
 
-def load_defense_gan_classifier():
+def get_accuracy(y_pred, y):
+    accuracy = np.sum(np.argmax(y_pred, axis=1) == np.argmax(y, axis=1)) / len(y)
+    return accuracy * 100
 
-    config = tf.ConfigProto()
-    config.gpu_options.allow_growth = True
-    model_sess = tf.Session(config=config)
-
-    x_shape = [28,28,1]
-    classes = 10
-    with tf.variable_scope(tf.get_variable_scope(), reuse=tf.AUTO_REUSE):
-        bb_model = model_a(
-            input_shape=[None] + x_shape, nb_classes=classes,
-        )
-
-    ### From blackbox_art.prep_bbox
-    model = bb_model
-
-    images_tensor = tf.placeholder(tf.float32, shape=[None] + x_shape)
-    labels_tensor = tf.placeholder(tf.float32, shape=(None, classes))
-
-    used_vars = model.get_params()
-    pred_train = model.get_logits(images_tensor, dropout=True)
-    pred_eval = model.get_logits(images_tensor)
-
-    classifier_load_success = False
-
-    path = tf.train.latest_checkpoint('./resources/tmpMnistModel/mnist')
-    saver = tf.train.Saver(var_list=used_vars)
-    saver.restore(model_sess, path)
-    print('[+] BB model loaded successfully ...')
-
-
-
-
-    # Killian removed
-    #accuracies['bbox'] is the legitimate accuracy
-    # accuracies = ()
-    # classifier, bbox_preds, accuracies['bbox'] = prep_bbox_out
-
-    return model, model_sess, images_tensor, labels_tensor, pred_train, pred_eval
-
-
-def create_defense_mnist_art_classifer():
-    model, model_sess, images_tensor, labels_tensor, pred_train, pred_eval = load_defense_gan_classifier()
-
-    classifier = TFClassifier(
-        # clip_values=(min_pixel_value, max_pixel_value),
-        input_ph=images_tensor,
-        output=pred_eval,
-        labels_ph=labels_tensor,
-        # train=train,
-        # loss=loss,
-        # learning=None,
-        sess=model_sess,
-        preprocessing_defences=[]
-    )
-
-    return classifier
 
 def main():
     ######## STEP 0
@@ -152,6 +98,7 @@ def main():
     (x_train_original, y_train_original), (
         x_test_original, y_test_original), min_pixel_value, max_pixel_value = load_mnist()
 
+    # TODO remove before PR request
     # batch_size = x_test_original.shape[0]
     batch_size = 1000
 
@@ -163,22 +110,10 @@ def main():
     classifier = create_ts1_art_model(min_pixel_value, max_pixel_value)
     classifier.fit(x_test, y_test, batch_size=batch_size, nb_epochs=3)
 
-
-    eval_params = {'batch_size': batch_size}
-
-    classifier = create_defense_mnist_art_classifer()
-    model_logit, model_sess, images_tensor, labels_tensor, pred_train, pred_eval = load_defense_gan_classifier()
-    # accuracy_ = model_eval(
-    #     model_sess, images_tensor, labels_tensor, pred_eval, x_test,
-    #     y_test, args=eval_params,
-    # )
-
-
     ######## STEP 2
     logging.info("Evaluate the ART classifier on non adversarial examples")
     predictions = classifier.predict(x_test)
-    accuracy_non_adv = np.sum(np.argmax(predictions, axis=1) == np.argmax(y_test, axis=1)) / len(y_test)
-    logger.info("Accuracy on non adversarial examples: {}%".format(accuracy_non_adv * 100))
+    accuracy_non_adv = get_accuracy(predictions, y_test)
 
     ######## STEP 3
     logging.info("Generate adversarial examples")
@@ -188,9 +123,7 @@ def main():
     ######## STEP 4
     logging.info("Evaluate the classifier on the adversarial examples")
     predictions = classifier.predict(x_test_adv)
-    accuracy_adv = np.sum(np.argmax(predictions, axis=1) == np.argmax(y_test, axis=1)) / len(y_test)
-    logger.info("Accuracy on adversarial examples: {}%".format(accuracy_adv * 100))
-
+    accuracy_adv = get_accuracy(predictions, y_test)
 
     ######## STEP 5
     logging.info("Create DefenceGan")
@@ -199,19 +132,16 @@ def main():
     defence_gan = DefenceGan(generator, encoder)
 
     logging.info("Generating Defended Samples")
-
-    # options = {"maxiter":1,
-    #                "maxfun":1}
-    x_test_defended = defence_gan(x_test_adv,maxiter=1)
+    x_test_defended = defence_gan(x_test_adv, maxiter=1)
 
     ######## STEP 6
     logging.info("Evaluate the classifier on the defended examples")
     predictions = classifier.predict(x_test_defended)
-    accuracy_defended = np.sum(np.argmax(predictions, axis=1) == np.argmax(y_test, axis=1)) / len(y_test)
+    accuracy_defended = get_accuracy(predictions, y_test)
 
-    logger.info("Accuracy on non adversarial examples: {}%".format(accuracy_non_adv * 100))
-    logger.info("Accuracy on adversarial examples: {}%".format(accuracy_adv * 100))
-    logger.info("Accuracy on defended examples: {}%".format(accuracy_defended * 100))
+    logger.info("Accuracy on non adversarial examples: {}%".format(accuracy_non_adv))
+    logger.info("Accuracy on adversarial examples: {}%".format(accuracy_adv))
+    logger.info("Accuracy on defended examples: {}%".format(accuracy_defended))
 
 if __name__ == "__main__":
     main()
