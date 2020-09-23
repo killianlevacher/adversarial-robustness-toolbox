@@ -21,6 +21,7 @@ def is_keras_2_3():
     return False
 
 
+@pytest.mark.skipMlFramework("tensorflow2")
 def test_layers(get_default_mnist_subset, framework, is_tf_version_2, image_dl_estimator):
     try:
         classifier, _ = image_dl_estimator(one_classifier=True, from_logits=True)

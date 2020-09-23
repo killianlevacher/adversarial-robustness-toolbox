@@ -589,17 +589,15 @@ def framework(request):
                 mlFramework, " ".join(art_supported_frameworks)
             )
         )
-    # if utils_test.is_valid_framework(mlFramework):
-    #     raise Exception("The mlFramework specified was incorrect. Valid options available
-    #     are {0}".format(art_supported_frameworks))
+    if mlFramework == "tensorflow":
+        import tensorflow as tf
+        if tf.__version__[0] == "2":
+            mlFramework = "tensorflow2"
+        else:
+            mlFramework = "tensorflow1"
     return mlFramework
 
-
-@pytest.fixture(scope="session")
-def default_batch_size():
-    yield 16
-
-
+#TODO deprecated remove
 @pytest.fixture(scope="session")
 def is_tf_version_2():
     import tensorflow as tf
@@ -608,6 +606,14 @@ def is_tf_version_2():
         yield True
     else:
         yield False
+
+
+@pytest.fixture(scope="session")
+def default_batch_size():
+    yield 16
+
+
+
 
 
 @pytest.fixture(scope="session")
@@ -710,7 +716,11 @@ def only_with_platform(request, framework):
 @pytest.fixture(autouse=True)
 def skip_by_platform(request, framework):
     if request.node.get_closest_marker("skipMlFramework"):
-        if framework in request.node.get_closest_marker("skipMlFramework").args:
+        frameworks_to_skip = list(request.node.get_closest_marker("skipMlFramework").args)
+        if "tensorflow" in frameworks_to_skip:
+            frameworks_to_skip.append("tensorflow1")
+            frameworks_to_skip.append("tensorflow2")
+        if framework in frameworks_to_skip:
             pytest.skip("skipped on this platform: {}".format(framework))
 
 
