@@ -248,7 +248,7 @@ def test_defences_predict(get_default_mnist_subset, image_dl_estimator_defended,
 
 # Note: because mxnet only supports 1 concurrent version of a model if we fit that model, all expected values will
 # change for all other tests using that fitted model
-@pytest.mark.skipMlFramework("mxnet")
+@pytest.mark.skipMlFramework("mxnet", "tensorflow2")
 def test_fit_image_generator(
     framework, is_tf_version_2, image_dl_estimator, image_data_generator, get_default_mnist_subset
 ):
