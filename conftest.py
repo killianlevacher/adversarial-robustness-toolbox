@@ -49,7 +49,7 @@ def pytest_addoption(parser):
         action="store",
         default=default_framework,
         help="ART tests allow you to specify which mlFramework to use. The default mlFramework used is `tensorflow`. "
-        "Other options available are {0}".format(art_supported_frameworks),
+             "Other options available are {0}".format(art_supported_frameworks),
     )
 
 
@@ -157,7 +157,7 @@ def setup_tear_down_framework(framework):
 
 
 @pytest.fixture
-def image_iterator(framework, is_tf_version_2, get_default_mnist_subset, default_batch_size):
+def image_iterator(framework, get_default_mnist_subset, default_batch_size):
     (x_train_mnist, y_train_mnist), (_, _) = get_default_mnist_subset
 
     if framework == "keras" or framework == "kerastf":
@@ -174,17 +174,15 @@ def image_iterator(framework, is_tf_version_2, get_default_mnist_subset, default
         )
         return keras_gen.flow(x_train_mnist, y_train_mnist, batch_size=default_batch_size)
 
-    if framework == "tensorflow":
+    if framework == "tensorflow1":
         import tensorflow as tf
-
-        if not is_tf_version_2:
-            x_tensor = tf.convert_to_tensor(x_train_mnist.reshape(10, 100, 28, 28, 1))
-            y_tensor = tf.convert_to_tensor(y_train_mnist.reshape(10, 100, 10))
-            # tmp = x_train_mnist.shape[0] / default_batch_size
-            # x_tensor = tf.convert_to_tensor(x_train_mnist.reshape(tmp, default_batch_size, 28, 28, 1))
-            # y_tensor = tf.convert_to_tensor(y_train_mnist.reshape(tmp, default_batch_size, 10))
-            dataset = tf.data.Dataset.from_tensor_slices((x_tensor, y_tensor))
-            return dataset.make_initializable_iterator()
+        x_tensor = tf.convert_to_tensor(x_train_mnist.reshape(10, 100, 28, 28, 1))
+        y_tensor = tf.convert_to_tensor(y_train_mnist.reshape(10, 100, 10))
+        # tmp = x_train_mnist.shape[0] / default_batch_size
+        # x_tensor = tf.convert_to_tensor(x_train_mnist.reshape(tmp, default_batch_size, 28, 28, 1))
+        # y_tensor = tf.convert_to_tensor(y_train_mnist.reshape(tmp, default_batch_size, 10))
+        dataset = tf.data.Dataset.from_tensor_slices((x_tensor, y_tensor))
+        return dataset.make_initializable_iterator()
 
     if framework == "pytorch":
         import torch
@@ -206,7 +204,7 @@ def image_iterator(framework, is_tf_version_2, get_default_mnist_subset, default
 
 
 @pytest.fixture
-def image_data_generator(framework, is_tf_version_2, get_default_mnist_subset, image_iterator, default_batch_size):
+def image_data_generator(framework, get_default_mnist_subset, image_iterator, default_batch_size):
     def _image_data_generator(**kwargs):
         (x_train_mnist, y_train_mnist), (_, _) = get_default_mnist_subset
 
@@ -215,16 +213,15 @@ def image_data_generator(framework, is_tf_version_2, get_default_mnist_subset, i
                 iterator=image_iterator, size=x_train_mnist.shape[0], batch_size=default_batch_size,
             )
 
-        if framework == "tensorflow":
-            if not is_tf_version_2:
-                return TensorFlowDataGenerator(
-                    sess=kwargs["sess"],
-                    iterator=image_iterator,
-                    iterator_type="initializable",
-                    iterator_arg={},
-                    size=x_train_mnist.shape[0],
-                    batch_size=default_batch_size,
-                )
+        if framework == "tensorflow1":
+            return TensorFlowDataGenerator(
+                sess=kwargs["sess"],
+                iterator=image_iterator,
+                iterator_type="initializable",
+                iterator_arg={},
+                size=x_train_mnist.shape[0],
+                batch_size=default_batch_size,
+            )
 
         if framework == "pytorch":
             return PyTorchDataGenerator(
@@ -238,7 +235,7 @@ def image_data_generator(framework, is_tf_version_2, get_default_mnist_subset, i
 
 
 @pytest.fixture
-def store_expected_values(request, is_tf_version_2):
+def store_expected_values(request):
     """
     Stores expected values to be retrieved by the expected_values fixture
     Note1: Numpy arrays MUST be converted to list before being stored as json
@@ -251,11 +248,6 @@ def store_expected_values(request, is_tf_version_2):
     def _store_expected_values(values_to_store, framework=""):
 
         framework_name = framework
-        if framework == "tensorflow":
-            if is_tf_version_2:
-                framework_name = "tensorflow2"
-            else:
-                framework_name = "tensorflow1"
         if framework_name is not "":
             framework_name = "_" + framework_name
 
@@ -263,7 +255,7 @@ def store_expected_values(request, is_tf_version_2):
 
         try:
             with open(
-                os.path.join(os.path.dirname(__file__), os.path.dirname(request.node.location[0]), file_name), "r"
+                    os.path.join(os.path.dirname(__file__), os.path.dirname(request.node.location[0]), file_name), "r"
             ) as f:
                 expected_values = json.load(f)
         except FileNotFoundError:
@@ -273,7 +265,7 @@ def store_expected_values(request, is_tf_version_2):
         expected_values[test_name] = values_to_store
 
         with open(
-            os.path.join(os.path.dirname(__file__), os.path.dirname(request.node.location[0]), file_name), "w"
+                os.path.join(os.path.dirname(__file__), os.path.dirname(request.node.location[0]), file_name), "w"
         ) as f:
             json.dump(expected_values, f, indent=4)
 
@@ -281,7 +273,7 @@ def store_expected_values(request, is_tf_version_2):
 
 
 @pytest.fixture
-def expected_values(framework, request, is_tf_version_2):
+def expected_values(framework, request):
     """
     Retrieves the expected values that were stored using the store_expected_values fixture
     :param request:
@@ -291,17 +283,12 @@ def expected_values(framework, request, is_tf_version_2):
     file_name = request.node.location[0].split("/")[-1][:-3] + ".json"
 
     framework_name = framework
-    if framework == "tensorflow":
-        if is_tf_version_2:
-            framework_name = "tensorflow2"
-        else:
-            framework_name = "tensorflow1"
     if framework_name is not "":
         framework_name = "_" + framework_name
 
     def _expected_values():
         with open(
-            os.path.join(os.path.dirname(__file__), os.path.dirname(request.node.location[0]), file_name), "r"
+                os.path.join(os.path.dirname(__file__), os.path.dirname(request.node.location[0]), file_name), "r"
         ) as f:
             expected_values = json.load(f)
 
@@ -333,10 +320,10 @@ def get_image_classifier_mx_model():
             super(Model, self).__init__(**kwargs)
             self.model = mxnet.gluon.nn.Sequential()
             self.model.add(
-                mxnet.gluon.nn.Conv2D(channels=1, kernel_size=7, activation="relu",),
+                mxnet.gluon.nn.Conv2D(channels=1, kernel_size=7, activation="relu", ),
                 mxnet.gluon.nn.MaxPool2D(pool_size=4, strides=4),
                 mxnet.gluon.nn.Flatten(),
-                mxnet.gluon.nn.Dense(10, activation=None,),
+                mxnet.gluon.nn.Dense(10, activation=None, ),
             )
 
         def forward(self, x):
@@ -597,23 +584,21 @@ def framework(request):
             mlFramework = "tensorflow1"
     return mlFramework
 
-#TODO deprecated remove
-@pytest.fixture(scope="session")
-def is_tf_version_2():
-    import tensorflow as tf
 
-    if tf.__version__[0] == "2":
-        yield True
-    else:
-        yield False
+# TODO deprecated remove
+# @pytest.fixture(scope="session")
+# def is_tf_version_2():
+#     import tensorflow as tf
+#
+#     if tf.__version__[0] == "2":
+#         yield True
+#     else:
+#         yield False
 
 
 @pytest.fixture(scope="session")
 def default_batch_size():
     yield 16
-
-
-
 
 
 @pytest.fixture(scope="session")
