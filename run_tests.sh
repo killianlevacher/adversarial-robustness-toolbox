@@ -7,26 +7,26 @@ export TF_CPP_MIN_LOG_LEVEL="3"
 # --------------------------------------------------------------------------------------------------------------- TESTS
 
 
-#mlFrameworkList=("tensorflow" "scikitlearn")
-#for mlFramework in "${mlFrameworkList[@]}"; do
-#  echo "Running tests with framework $mlFramework"
-#  pytest -q -vv tests/attacks/inference/ --mlFramework=$mlFramework --skip_travis=True --durations=0
-#  if [[ $? -ne 0 ]]; then exit_code=1; echo "Failed attacks/inference tests"; fi
-#done
-#
-#mlFrameworkList=("tensorflow")
-#for mlFramework in "${mlFrameworkList[@]}"; do
-#  echo "Running tests with framework $mlFramework"
-#  pytest -q -vv tests/defences/preprocessor --mlFramework=$mlFramework --skip_travis=True --durations=0
-#  if [[ $? -ne 0 ]]; then exit_code=1; echo "Failed defences/preprocessor tests"; fi
-#
-#  pytest -q -vv tests/utils --mlFramework=$mlFramework --skip_travis=True --durations=0
-#  if [[ $? -ne 0 ]]; then exit_code=1; echo "Failed utils tests"; fi
-#
-#  pytest -q -vv tests/attacks/evasion/ --mlFramework=$mlFramework  --skip_travis=True --durations=0
-#  if [[ $? -ne 0 ]]; then exit_code=1; echo "Failed attacks/evasion tests"; fi
-#
-#done
+mlFrameworkList=("tensorflow" "scikitlearn")
+for mlFramework in "${mlFrameworkList[@]}"; do
+  echo "Running tests with framework $mlFramework"
+  pytest -q -vv tests/attacks/inference/ --mlFramework=$mlFramework --skip_travis=True --durations=0
+  if [[ $? -ne 0 ]]; then exit_code=1; echo "Failed attacks/inference tests"; fi
+done
+
+mlFrameworkList=("tensorflow")
+for mlFramework in "${mlFrameworkList[@]}"; do
+  echo "Running tests with framework $mlFramework"
+  pytest -q -vv tests/defences/preprocessor --mlFramework=$mlFramework --skip_travis=True --durations=0
+  if [[ $? -ne 0 ]]; then exit_code=1; echo "Failed defences/preprocessor tests"; fi
+
+  pytest -q -vv tests/utils --mlFramework=$mlFramework --skip_travis=True --durations=0
+  if [[ $? -ne 0 ]]; then exit_code=1; echo "Failed utils tests"; fi
+
+  pytest -q -vv tests/attacks/evasion/ --mlFramework=$mlFramework  --skip_travis=True --durations=0
+  if [[ $? -ne 0 ]]; then exit_code=1; echo "Failed attacks/evasion tests"; fi
+
+done
 
 #NOTE: All the tests should be ran within this loop. All other tests are legacy tests that must be
 # made framework independent to be incorporated within this loop
@@ -34,23 +34,23 @@ mlFrameworkList=("tensorflow" "keras" "pytorch" "scikitlearn" "mxnet" "kerastf")
 for mlFramework in "${mlFrameworkList[@]}"; do
   echo "Running tests with framework $mlFramework"
 
-  pytest -q -vv tests/test_feature_collision_pytest.py  --mlFramework=$mlFramework --skip_travis=True --durations=0
+  pytest -q -vv tests//attacks/evasion/test_feature_collision.py  --mlFramework=$mlFramework --skip_travis=True --durations=0
   if [[ $? -ne 0 ]]; then exit_code=1; echo "Failed classifiersFrameworks tests"; fi
 
-#  pytest -q -vv tests/classifiersFrameworks/  --mlFramework=$mlFramework --skip_travis=True --durations=0
-#  if [[ $? -ne 0 ]]; then exit_code=1; echo "Failed classifiersFrameworks tests"; fi
-#
-#  pytest -q -vv tests/defences/preprocessor/test_spatial_smoothing_pytorch.py  --mlFramework=$mlFramework --skip_travis=True --durations=0
-#  if [[ $? -ne 0 ]]; then exit_code=1; echo "Failed defences/preprocessor/test_spatial_smoothing_pytorch.py tests"; fi
-#
-#  pytest -q -vv -s tests/attacks/evasion/test_shadow_attack.py --mlFramework=$mlFramework  --skip_travis=True --durations=0
-#  if [[ $? -ne 0 ]]; then exit_code=1; echo "Failed attacks/evasion/test_shadow_attack.py"; fi
-#
-#  pytest -q -vv tests/estimators/classification/test_deeplearning_common.py --mlFramework=$mlFramework --skip_travis=True --durations=0
-#  if [[ $? -ne 0 ]]; then exit_code=1; echo "Failed estimators/classification/test_deeplearning_common.py $mlFramework"; fi
-#
-#  pytest -q -vv tests/estimators/classification/test_deeplearning_specific.py --mlFramework=$mlFramework --skip_travis=True --durations=0
-#  if [[ $? -ne 0 ]]; then exit_code=1; echo "Failed estimators/classification tests for framework $mlFramework"; fi
+  pytest -q -vv tests/classifiersFrameworks/  --mlFramework=$mlFramework --skip_travis=True --durations=0
+  if [[ $? -ne 0 ]]; then exit_code=1; echo "Failed classifiersFrameworks tests"; fi
+
+  pytest -q -vv tests/defences/preprocessor/test_spatial_smoothing_pytorch.py  --mlFramework=$mlFramework --skip_travis=True --durations=0
+  if [[ $? -ne 0 ]]; then exit_code=1; echo "Failed defences/preprocessor/test_spatial_smoothing_pytorch.py tests"; fi
+
+  pytest -q -vv -s tests/attacks/evasion/test_shadow_attack.py --mlFramework=$mlFramework  --skip_travis=True --durations=0
+  if [[ $? -ne 0 ]]; then exit_code=1; echo "Failed attacks/evasion/test_shadow_attack.py"; fi
+
+  pytest -q -vv tests/estimators/classification/test_deeplearning_common.py --mlFramework=$mlFramework --skip_travis=True --durations=0
+  if [[ $? -ne 0 ]]; then exit_code=1; echo "Failed estimators/classification/test_deeplearning_common.py $mlFramework"; fi
+
+  pytest -q -vv tests/estimators/classification/test_deeplearning_specific.py --mlFramework=$mlFramework --skip_travis=True --durations=0
+  if [[ $? -ne 0 ]]; then exit_code=1; echo "Failed estimators/classification tests for framework $mlFramework"; fi
 done
 
 
@@ -63,7 +63,7 @@ declare -a attacks=("tests/attacks/test_adversarial_patch.py" \
                     "tests/attacks/test_decision_tree_attack.py" \
                     "tests/attacks/test_deepfool.py" \
                     "tests/attacks/test_elastic_net.py" \
-                    "tests/attacks/test_feature_collision.py" \
+#                    "tests/attacks/test_feature_collision.py" \
                     "tests/attacks/test_functionally_equivalent_extraction.py" \
                     "tests/attacks/test_hclu.py" \
                     "tests/attacks/test_input_filter.py" \
