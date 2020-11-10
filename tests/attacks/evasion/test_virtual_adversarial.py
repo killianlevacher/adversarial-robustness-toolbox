@@ -35,6 +35,7 @@ from tests.attacks.utils import backend_test_classifier_type_check_fail
 logger = logging.getLogger(__name__)
 
 
+
 class TestVirtualAdversarial(TestBase):
     @classmethod
     def setUpClass(cls):
